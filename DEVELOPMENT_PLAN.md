@@ -43,12 +43,12 @@ SupermarketCheckout/
 
 ## Fases de Implementação
 
-- [ ] **Fase 1** — Estrutura Maven + Modelo de Domínio (`Item`, `Category`, `Customer`, `BankCard`, `Cart`, `CartEntry`)
-- [ ] **Fase 2** — Planos de Desconto: `DiscountPlan` interface + Normal/Prime/Platinum + `DiscountPlanFactory`
-- [ ] **Fase 3** — Políticas de Preço: `PricingPolicy` interface + `CategoryDiscount` + `NoPricingPolicy`
-- [ ] **Fase 4** — `CashRegister` + cálculo do bill (plano + política de categoria)
-- [ ] **Fase 5** — Sistema de Pagamento: `POSDevice` + `TransactionAuthorisationSystem` (TAS) + `PaymentSimulator`
-- [ ] **Fase 6** — Inventário + Observer: `Inventory` notifica `ManagerNotifier`/`SupplierNotifier` ao atingir threshold (R9)
+- [x] **Fase 1** — Estrutura Maven + Modelo de Domínio (`Item`, `Category`, `Customer`, `BankCard`, `Cart`, `CartEntry`)
+- [x] **Fase 2** — Planos de Desconto: `DiscountPlan` interface + Normal/Prime/Platinum + `DiscountPlanFactory`
+- [x] **Fase 3** — Políticas de Preço: `PricingPolicy` interface + `CategoryDiscount` + `NoPricingPolicy`
+- [x] **Fase 4** — `CashRegister` + cálculo do bill (plano + política de categoria)
+- [x] **Fase 5** — Sistema de Pagamento: `POSDevice` + `TransactionAuthorisationSystem` (TAS) + `PaymentSimulator`
+- [x] **Fase 6** — Inventário + Observer: `Inventory` notifica `ManagerNotifier`/`SupplierNotifier` ao atingir threshold (R9)
 - [ ] **Fase 7** — Entrega Domiciliar: `StandardDeliveryCalculator` (peso+distância), descontos por plano (R8b), `TimeSlot`/`DeliveryManager` para janelas de 2h e preço dinâmico (R10)
 - [ ] **Fase 8** — CLUI completa: 20 comandos, tratamento de erros, `runTest`, `setup`, `simulatePayment`
 - [ ] **Fase 9** — `my_supermarket.ini` + cenários de teste adicionais

@@ -1,0 +1,23 @@
+package supermarket.model;
+
+import supermarket.discount.DiscountPlan;
+import supermarket.discount.NormalPlan;
+import supermarket.users.User;
+
+public class Customer extends User {
+    private final String address;
+    private DiscountPlan discountPlan;
+    private BankCard bankCard;
+
+    public Customer(String firstName, String lastName, String username, String address, String password) {
+        super(firstName, lastName, username, password, "customer");
+        this.address = address;
+        this.discountPlan = new NormalPlan();
+    }
+
+    public String getAddress() { return address; }
+    public DiscountPlan getDiscountPlan() { return discountPlan; }
+    public void setDiscountPlan(DiscountPlan plan) { this.discountPlan = plan; }
+    public BankCard getBankCard() { return bankCard; }
+    public void setBankCard(BankCard card) { this.bankCard = card; }
+}

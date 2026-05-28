@@ -1,0 +1,138 @@
+package supermarket.register;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import supermarket.discount.DiscountPlan;
+import supermarket.discount.DiscountPlanFactory;
+import supermarket.inventory.Inventory;
+import supermarket.inventory.ManagerNotifier;
+import supermarket.inventory.SupplierNotifier;
+import supermarket.model.BankCard;
+import supermarket.model.Category;
+import supermarket.model.Customer;
+import supermarket.model.Item;
+import supermarket.pricing.CategoryDiscount;
+import supermarket.users.Cashier;
+import supermarket.users.Manager;
+import supermarket.users.User;
+import supermarket.payment.POSDevice;
+import supermarket.payment.TransactionAuthorisationSystem;
+
+/**
+ * Core of the Supermarket checkout system: owns the catalogue, the item
+ * categories, the registered users, the live inventory, the bank's TAS and the
+ * cash register (with its POS). Provides the operations exposed by the CLUI.
+ */
+public class Supermarket {
+    private final Map<String, Category> categories = new HashMap<>();
+    private final Map<String, Item> catalogue = new HashMap<>();
+    private final Map<String, User> users = new HashMap<>();
+
+    private final Inventory inventory = new Inventory();
+    private final TransactionAuthorisationSystem tas = new TransactionAuthorisationSystem();
+    private final POSDevice pos = new POSDevice(tas);
+    private final CashRegister cashRegister = new CashRegister(inventory, pos);
+
+    private int cardCounter = 0;
+
+    public Supermarket() {
+        // R9: wire the Observer notifiers to the inventory.
+        inventory.addObserver(new ManagerNotifier());
+        inventory.addObserver(new SupplierNotifier());
+
+        // The CEO manager is assumed to exist (spec 3.1).
+        users.put("ceo", new Manager("Super", "Visor", "ceo", "123456789"));
+    }
+
+    // ---- Catalogue & categories ----
+
+    /** Returns the category, creating it on the fly if unknown (R6b). */
+    public Category getOrCreateCategory(String name) {
+        return categories.computeIfAbsent(name, Category::new);
+    }
+
+    public Category getCategory(String name) {
+        return categories.get(name);
+    }
+
+    /** Adds a sellable item to the catalogue and the inventory (addItem command). */
+    public Item addItem(String name, String categoryName, double unitPrice,
+                        double weightKg, int initialStock) {
+        Category category = getOrCreateCategory(categoryName);
+        Item item = new Item(name, category, unitPrice, weightKg);
+        catalogue.put(name, item);
+        inventory.addItem(item, initialStock);
+        return item;
+    }
+
+    public Item getItem(String name) {
+        return catalogue.get(name);
+    }
+
+    public Item requireItem(String name) {
+        Item item = catalogue.get(name);
+        if (item == null) {
+            throw new IllegalArgumentException("Unknown item: " + name);
+        }
+        return item;
+    }
+
+    public void restock(String itemName, int quantity) {
+        inventory.restock(requireItem(itemName), quantity);
+    }
+
+    /** Applies a category-level pricing policy (R6). */
+    public void setCategoryDiscount(String categoryName, double percent) {
+        Category category = categories.get(categoryName);
+        if (category == null) {
+            throw new IllegalArgumentException("Unknown category: " + categoryName);
+        }
+        category.setPricingPolicy(new CategoryDiscount(percent));
+    }
+
+    // ---- Users ----
+
+    public void registerCashier(String firstName, String lastName, String username, String password) {
+        users.put(username, new Cashier(firstName, lastName, username, password));
+    }
+
+    public Customer registerCustomer(String firstName, String lastName, String username,
+                                     String address, String password) {
+        Customer customer = new Customer(firstName, lastName, username, address, password);
+        // Each new customer gets an auto-generated, pre-funded test bank card.
+        BankCard card = new BankCard(generateCardNumber(), "0000", 1_000.0);
+        customer.setBankCard(card);
+        tas.registerCard(card);
+        users.put(username, customer);
+        return customer;
+    }
+
+    public void subscribeToPlan(Customer customer, String planName) {
+        DiscountPlan plan = DiscountPlanFactory.create(planName);
+        customer.setDiscountPlan(plan);
+    }
+
+    public User getUser(String username) {
+        return users.get(username);
+    }
+
+    public Customer requireCustomer(String username) {
+        User user = users.get(username);
+        if (!(user instanceof Customer customer)) {
+            throw new IllegalArgumentException("Unknown customer: " + username);
+        }
+        return customer;
+    }
+
+    // ---- Components ----
+
+    public Inventory getInventory() { return inventory; }
+    public TransactionAuthorisationSystem getTas() { return tas; }
+    public CashRegister getCashRegister() { return cashRegister; }
+    public double getRevenue() { return cashRegister.getTotalRevenue(); }
+
+    private String generateCardNumber() {
+        return String.format("%016d", ++cardCounter);
+    }
+}
