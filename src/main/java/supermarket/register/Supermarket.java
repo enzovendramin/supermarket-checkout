@@ -1,5 +1,6 @@
 package supermarket.register;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -53,6 +54,27 @@ public class Supermarket {
         users.put("ceo", new Manager("Super", "Visor", "ceo", "123456789"));
     }
 
+    /**
+     * Loads the default configuration (setup command): the three mandatory item
+     * categories (R2b), a default cashier and customer, and a pre-registered
+     * test bank card. Idempotent so it can be re-run safely.
+     */
+    public void setup() {
+        getOrCreateCategory("fruit-and-vegetables");
+        getOrCreateCategory("dairy");
+        getOrCreateCategory("meat");
+
+        if (getUser("cashier") == null) {
+            registerCashier("Default", "Cashier", "cashier", "cashier");
+        }
+        if (getUser("customer") == null) {
+            registerCustomer("Default", "Customer", "customer", "1 Main Street", "customer");
+        }
+        if (!tas.isRegistered("4242424242424242")) {
+            tas.registerCard(new BankCard("4242424242424242", "1234", 1_000.0));
+        }
+    }
+
     // ---- Catalogue & categories ----
 
     /** Returns the category, creating it on the fly if unknown (R6b). */
@@ -76,6 +98,10 @@ public class Supermarket {
 
     public Item getItem(String name) {
         return catalogue.get(name);
+    }
+
+    public Collection<Item> getCatalogueItems() {
+        return catalogue.values();
     }
 
     public Item requireItem(String name) {

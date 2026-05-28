@@ -1,5 +1,7 @@
 package supermarket.model;
 
+import java.util.Locale;
+
 public class Receipt {
     private final String customerUsername;
     private final double subtotalBeforeDiscount;
@@ -24,7 +26,7 @@ public class Receipt {
 
     @Override
     public String toString() {
-        return String.format(
+        return String.format(Locale.US,
             "Receipt for %s:%n  Subtotal (before discount): €%.2f%n  Subtotal (after discount):  €%.2f%n  Delivery:                   €%.2f%n  TOTAL:                      €%.2f",
             customerUsername, subtotalBeforeDiscount, subtotalAfterDiscount, deliveryCost, total);
     }
