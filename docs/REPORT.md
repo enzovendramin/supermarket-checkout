@@ -83,18 +83,38 @@ supermarket
 
 ## 5. UML Diagrams
 
-The diagrams are provided as PlantUML sources in `docs/uml/`:
+The diagrams are provided as PlantUML sources (and rendered PNGs) in `docs/uml/`.
 
-| File | Diagram |
-|------|---------|
-| `class-diagram.puml` | **Class diagram (mandatory)** — all packages, the three Strategy hierarchies, the Observer hierarchy, and the orchestration core. |
-| `use-case-diagram.puml` | Use cases for Manager, Cashier, Customer and the Bank. |
-| `sequence-checkout-payment.puml` | Checkout + bill + payment flow, including forced/real payment and the post-success inventory decrement. |
-| `sequence-low-stock-alert.puml` | The Observer notification when a perishable item drops below threshold. |
+### 5.1 Class diagram (mandatory)
 
-**Rendering:** open the `.puml` files with the *PlantUML* extension in VS Code,
-or paste them into https://www.plantuml.com/plantuml to export PNG/SVG/PDF for
-inclusion in the final PDF.
+All packages, the three Strategy hierarchies (discount, pricing, delivery), the
+Observer hierarchy (inventory) and the orchestration core (register, cli).
+
+![Class diagram](uml/class-diagram.png)
+
+### 5.2 Use-case diagram
+
+Use cases for the Manager, Cashier, Customer and the Bank (TAS).
+
+![Use-case diagram](uml/use-case-diagram.png)
+
+### 5.3 Sequence — checkout & payment
+
+Checkout + bill + payment flow, including the forced/real payment branch and the
+post-success inventory decrement.
+
+![Checkout and payment sequence](uml/sequence-checkout-payment.png)
+
+### 5.4 Sequence — low-stock alert (Observer, R9)
+
+The Observer notification fired when a perishable item drops to/below its
+threshold.
+
+![Low-stock alert sequence](uml/sequence-low-stock-alert.png)
+
+> **Rendering note:** the PNGs above were generated from the `.puml` sources with
+> PlantUML. To regenerate them, run `java -jar plantuml.jar docs/uml/*.puml`, or
+> open the `.puml` files with the *PlantUML* extension in VS Code.
 
 ---
 
