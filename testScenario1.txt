@@ -1,0 +1,90 @@
+# =========================================================================
+# testScenario1.txt
+# -------------------------------------------------------------------------
+# End-to-end scenario for the mysupermarket CLUI.
+#
+# What this scenario tests:
+#   1. Default bootstrap + manual catalogue extension.
+#   2. Category-level pricing policy (R6: -10% on fruit-and-vegetables).
+#   3. Customer subscription to the 'prime' plan (R5).
+#   4. Checkout with a mixed cart of all three mandatory categories (R2b).
+#   5. Bill computation combining customer plan + category discount.
+#   6. Home delivery with plan-based fee reduction (R7, R8, R8b).
+#   7. Failed payment (INSUFFICIENT_FUNDS) followed by a successful retry.
+#   8. Inventory decrement and low-stock alert (R9, Observer pattern).
+#
+# Lines starting with '#' are comments and must be ignored by runTest.
+# =========================================================================
+
+
+# ---- 1. Manager bootstraps the system ----
+login ceo 123456789
+setup
+
+# ---- 2. Manager extends the default catalogue ----
+# addItem <name> <category> <unitPrice> <weight-kg> <initialStock>
+addItem milk         diary                  1.20 1.00  50
+addItem yogurt       diary                  0.80 0.15  30
+addItem steak        meat                  12.50 0.50   5
+addItem chicken      meat                   8.00 1.00  20
+addItem apple        fruit-and-vegetables   0.30 0.20 200
+addItem tomato       fruit-and-vegetables   0.90 0.25 100
+
+# ---- 3. Category-level discount (R6) ----
+setCategoryDiscount fruit-and-vegetables 10
+
+# ---- 4. Register a cashier and a customer ----
+registerCashier  Bob   Dupont  bob    bobpwd
+registerCustomer Alice Martin  alice  "12 rue de la Paix" alicepwd
+logout
+
+
+# ---- 5. Customer subscribes to the 'prime' plan ----
+login alice alicepwd
+subscribeToPlan prime
+# Customer also requests home delivery for the upcoming purchase
+requestDelivery "12 rue de la Paix"
+logout
+
+
+# ---- 6. Cashier opens the checkout and scans items ----
+login bob bobpwd
+startCheckout alice
+scanItem milk    2
+scanItem yogurt  3
+scanItem steak   1
+scanItem apple  10
+scanItem tomato  4
+
+# Display the bill (should apply: -10% on fruit-and-vegetables,
+# then -20% prime plan on the total, plus delivery fee reduced
+# according to prime plan's 50% discount on delivery -- see R8b).
+computeBill
+
+# ---- 7. First payment attempt fails ----
+simulatePayment INSUFFICIENT_FUNDS
+pay 4242424242424242 1234
+
+# ---- 8. Second attempt succeeds ----
+simulatePayment SUCCESS
+pay 4242424242424242 1234
+logout
+
+
+# ---- 9. Second checkout to push 'steak' below its low-stock threshold ----
+# Initial steak stock = 5, after previous sale = 4.
+# Buying 4 more should fire the R9 Observer notification.
+login bob bobpwd
+startCheckout alice
+scanItem steak 4
+computeBill
+simulatePayment SUCCESS
+pay 4242424242424242 1234
+logout
+
+
+# ---- 10. Manager inspects the resulting state ----
+login ceo 123456789
+showInventory
+showRevenue
+logout
