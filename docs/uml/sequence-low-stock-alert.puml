@@ -1,0 +1,26 @@
+@startuml sequence-low-stock-alert
+title Low-Stock Alert (R9, Observer Pattern) — Sequence Diagram
+
+participant CashRegister
+participant Inventory
+participant "ManagerNotifier\n: StockObserver" as MN
+participant "SupplierNotifier\n: StockObserver" as SN
+
+CashRegister -> Inventory : decrement(steak, 4)
+activate Inventory
+Inventory -> Inventory : newStock = current - qty
+alt item is perishable AND newStock <= threshold
+    Inventory -> MN : onLowStock(steak, newStock, threshold)
+    activate MN
+    MN --> Inventory
+    deactivate MN
+    Inventory -> SN : onLowStock(steak, newStock, threshold)
+    activate SN
+    SN --> Inventory
+    deactivate SN
+else above threshold
+    note right of Inventory : no notification
+end
+deactivate Inventory
+
+@enduml

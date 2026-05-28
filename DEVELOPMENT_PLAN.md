@@ -53,7 +53,7 @@ SupermarketCheckout/
 - [x] **Fase 8** — CLUI completa: 20 comandos, tratamento de erros, `runTest`, `setup`, `simulatePayment`
 - [x] **Fase 9** — `my_supermarket.ini` + cenários de teste adicionais
 - [x] **Fase 10** — JUnit Tests (um `*Test.java` por classe, sem getters/setters)
-- [ ] **Fase 11** — UML (class diagram obrigatório + use case + sequence) + Relatório PDF
+- [x] **Fase 11** — UML (class diagram obrigatório + use case + sequence) + Relatório (conteúdo em `docs/`; falta só exportar o PDF)
 
 ---
 

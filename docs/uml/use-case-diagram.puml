@@ -1,0 +1,58 @@
+@startuml use-case-diagram
+title Supermarket Checkout System — Use Cases
+
+left to right direction
+skinparam packageStyle rectangle
+
+actor Manager
+actor Cashier
+actor Customer
+actor "Bank (TAS)" as Bank
+
+rectangle "Supermarket Checkout System" {
+    usecase "Load default setup" as UC_setup
+    usecase "Register cashier" as UC_regCashier
+    usecase "Register customer" as UC_regCustomer
+    usecase "Add item to catalogue" as UC_addItem
+    usecase "Restock item" as UC_restock
+    usecase "Set category discount" as UC_catDisc
+    usecase "Show inventory" as UC_showInv
+    usecase "Show revenue" as UC_showRev
+
+    usecase "Subscribe to plan" as UC_subscribe
+    usecase "Request home delivery" as UC_delivery
+
+    usecase "Start checkout" as UC_start
+    usecase "Scan item" as UC_scan
+    usecase "Compute bill" as UC_bill
+    usecase "Pay (POS)" as UC_pay
+    usecase "Simulate payment" as UC_sim
+
+    usecase "Authorise transaction" as UC_auth
+    usecase "Notify low stock" as UC_lowstock
+}
+
+Manager --> UC_setup
+Manager --> UC_regCashier
+Manager --> UC_regCustomer
+Manager --> UC_addItem
+Manager --> UC_restock
+Manager --> UC_catDisc
+Manager --> UC_showInv
+Manager --> UC_showRev
+
+Customer --> UC_subscribe
+Customer --> UC_delivery
+
+Cashier --> UC_start
+Cashier --> UC_scan
+Cashier --> UC_bill
+Cashier --> UC_pay
+Cashier --> UC_sim
+
+UC_pay ..> UC_auth : <<include>>
+UC_auth --> Bank
+UC_pay ..> UC_lowstock : <<extend>>\n(stock below threshold)
+UC_bill ..> UC_delivery : <<include>>\n(if delivery requested)
+
+@enduml

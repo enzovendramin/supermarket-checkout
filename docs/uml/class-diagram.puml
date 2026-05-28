@@ -1,0 +1,228 @@
+@startuml class-diagram
+title Supermarket Checkout System — Class Diagram
+
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+hide empty members
+
+' ===================== users =====================
+package users {
+    abstract class User {
+        - firstName : String
+        - lastName : String
+        - username : String
+        - password : String
+        - role : String
+        + checkPassword(pwd) : boolean
+        + getRole() : String
+    }
+    class Manager
+    class Cashier
+    User <|-- Manager
+    User <|-- Cashier
+}
+
+' ===================== model =====================
+package model {
+    class Customer {
+        - address : String
+        + getDiscountPlan() : DiscountPlan
+        + setDiscountPlan(p)
+    }
+    class Item {
+        - name : String
+        - unitPrice : double
+        - weightKg : double
+    }
+    class Category {
+        - name : String
+    }
+    class Cart {
+        + addEntry(e)
+        + rawTotal() : double
+        + totalWeightKg() : double
+    }
+    class CartEntry {
+        - quantity : int
+        + subtotal() : double
+        + totalWeightKg() : double
+    }
+    class BankCard {
+        - number : String
+        - pin : String
+        - balance : double
+        + pinMatches(p) : boolean
+        + debit(a)
+        + credit(a)
+    }
+    class Receipt {
+        - subtotalBeforeDiscount : double
+        - subtotalAfterDiscount : double
+        - deliveryCost : double
+        - total : double
+    }
+}
+User <|-- Customer
+Customer "1" --> "1" BankCard
+Item "*" --> "1" Category
+Cart "1" o--> "*" CartEntry
+CartEntry "*" --> "1" Item
+
+' ===================== discount (Strategy + Factory) =====================
+package discount {
+    interface DiscountPlan {
+        + applyDiscount(subtotal) : double
+        + applyDeliveryDiscount(cost) : double
+        + getName() : String
+    }
+    class NormalPlan
+    class PrimePlan
+    class PlatinumPlan
+    class DiscountPlanFactory {
+        + {static} create(name) : DiscountPlan
+    }
+    DiscountPlan <|.. NormalPlan
+    DiscountPlan <|.. PrimePlan
+    DiscountPlan <|.. PlatinumPlan
+    DiscountPlanFactory ..> DiscountPlan : creates
+}
+
+' ===================== pricing (Strategy) =====================
+package pricing {
+    interface PricingPolicy {
+        + apply(price) : double
+        + getName() : String
+    }
+    class NoPricingPolicy
+    class CategoryDiscount {
+        - percent : double
+    }
+    PricingPolicy <|.. NoPricingPolicy
+    PricingPolicy <|.. CategoryDiscount
+}
+
+' ===================== inventory (Observer) =====================
+package inventory {
+    interface StockObserver {
+        + onLowStock(item, current, threshold)
+    }
+    class Inventory {
+        + addItem(item, stock)
+        + restock(item, qty)
+        + decrement(item, qty)
+        + isLow(item) : boolean
+        + addObserver(o)
+    }
+    class ManagerNotifier
+    class SupplierNotifier
+    StockObserver <|.. ManagerNotifier
+    StockObserver <|.. SupplierNotifier
+    Inventory "1" o--> "*" StockObserver : notifies
+    Inventory ..> Item
+}
+
+' ===================== payment (Facade) =====================
+package payment {
+    enum PaymentResult {
+        SUCCESS
+        INSUFFICIENT_FUNDS
+        PIN_WRONG
+        AUTH_DENIED
+    }
+    class TransactionAuthorisationSystem {
+        + registerCard(c)
+        + authorise(cardNumber, amount) : PaymentResult
+    }
+    class PaymentSimulator {
+        + force(outcome)
+        + consume() : Optional<PaymentResult>
+    }
+    class POSDevice {
+        + pay(cardNumber, pin, amount) : PaymentResult
+        + simulateNextPayment(outcome)
+    }
+    POSDevice "1" --> "1" TransactionAuthorisationSystem
+    POSDevice "1" --> "1" PaymentSimulator
+    TransactionAuthorisationSystem ..> BankCard
+    TransactionAuthorisationSystem ..> PaymentResult
+}
+
+' ===================== delivery (Strategy + logistics) =====================
+package delivery {
+    interface DeliveryCalculator {
+        + computeFee(weight, distance, total) : double
+    }
+    class StandardDeliveryCalculator
+    class DeliveryRequest {
+        - address : String
+        - distanceKm : double
+    }
+    class TimeSlot {
+        - startHour : int
+        + isPeak() : boolean
+    }
+    class DeliveryManager {
+        - vehicleCapacityPerSlot : int
+        + book(slot)
+        + quote(baseFee, slot, nearby) : double
+    }
+    DeliveryCalculator <|.. StandardDeliveryCalculator
+    DeliveryManager "1" o--> "*" TimeSlot : bookings
+}
+
+' ===================== register (orchestration) =====================
+package register {
+    class CashRegister {
+        + startCheckout(customer, delivery)
+        + scanItem(item, qty)
+        + computeBill() : Receipt
+        + pay(cardNumber, pin) : PaymentResult
+        + getTotalRevenue() : double
+    }
+    class Supermarket {
+        + setup()
+        + addItem(...) : Item
+        + registerCustomer(...) : Customer
+        + setCategoryDiscount(cat, pct)
+        + requestDelivery(user, address)
+        + openCheckout(user)
+    }
+    Supermarket "1" --> "1" CashRegister
+    Supermarket "1" --> "1" Inventory
+    Supermarket "1" --> "1" TransactionAuthorisationSystem
+    Supermarket "1" --> "1" POSDevice
+    Supermarket "1" --> "1" DeliveryCalculator
+    Supermarket "1" o--> "*" Category
+    Supermarket "1" o--> "*" Item
+    Supermarket "1" o--> "*" User
+    Supermarket ..> DeliveryRequest
+    CashRegister "1" --> "1" Inventory
+    CashRegister "1" --> "1" POSDevice
+    CashRegister "1" --> "1" DeliveryCalculator
+    CashRegister ..> Cart
+    CashRegister ..> Receipt
+    CashRegister ..> Customer
+}
+
+' ===================== cli =====================
+package cli {
+    class CLI
+    class CommandContext {
+        - currentUser : User
+        + requireRole(role) : User
+    }
+    class CommandDispatcher {
+        + execute(line)
+    }
+    CLI --> CommandContext
+    CLI --> CommandDispatcher
+    CommandDispatcher --> CommandContext
+    CommandContext --> Supermarket
+}
+
+' ===================== cross-package relationships =====================
+' (declared after all types exist to avoid phantom classes)
+Customer "1" --> "1" DiscountPlan : plan
+Category "1" --> "1" PricingPolicy : policy
+
+@enduml
