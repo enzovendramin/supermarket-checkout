@@ -49,7 +49,7 @@ SupermarketCheckout/
 - [x] **Fase 4** — `CashRegister` + cálculo do bill (plano + política de categoria)
 - [x] **Fase 5** — Sistema de Pagamento: `POSDevice` + `TransactionAuthorisationSystem` (TAS) + `PaymentSimulator`
 - [x] **Fase 6** — Inventário + Observer: `Inventory` notifica `ManagerNotifier`/`SupplierNotifier` ao atingir threshold (R9)
-- [ ] **Fase 7** — Entrega Domiciliar: `StandardDeliveryCalculator` (peso+distância), descontos por plano (R8b), `TimeSlot`/`DeliveryManager` para janelas de 2h e preço dinâmico (R10)
+- [x] **Fase 7** — Entrega Domiciliar: `StandardDeliveryCalculator` (peso+distância), descontos por plano (R8b), `TimeSlot`/`DeliveryManager` para janelas de 2h e preço dinâmico (R10)
 - [ ] **Fase 8** — CLUI completa: 20 comandos, tratamento de erros, `runTest`, `setup`, `simulatePayment`
 - [ ] **Fase 9** — `my_supermarket.ini` + cenários de teste adicionais
 - [ ] **Fase 10** — JUnit Tests (um `*Test.java` por classe, sem getters/setters)

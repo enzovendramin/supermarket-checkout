@@ -3,6 +3,9 @@ package supermarket.register;
 import java.util.HashMap;
 import java.util.Map;
 
+import supermarket.delivery.DeliveryCalculator;
+import supermarket.delivery.DeliveryRequest;
+import supermarket.delivery.StandardDeliveryCalculator;
 import supermarket.discount.DiscountPlan;
 import supermarket.discount.DiscountPlanFactory;
 import supermarket.inventory.Inventory;
@@ -25,14 +28,19 @@ import supermarket.payment.TransactionAuthorisationSystem;
  * cash register (with its POS). Provides the operations exposed by the CLUI.
  */
 public class Supermarket {
+    /** Stub distance until a real geocoding service is plugged in; keeps scenarios deterministic. */
+    public static final double DEFAULT_DISTANCE_KM = 10.0;
+
     private final Map<String, Category> categories = new HashMap<>();
     private final Map<String, Item> catalogue = new HashMap<>();
     private final Map<String, User> users = new HashMap<>();
+    private final Map<String, DeliveryRequest> pendingDeliveries = new HashMap<>();
 
     private final Inventory inventory = new Inventory();
     private final TransactionAuthorisationSystem tas = new TransactionAuthorisationSystem();
     private final POSDevice pos = new POSDevice(tas);
-    private final CashRegister cashRegister = new CashRegister(inventory, pos);
+    private final DeliveryCalculator deliveryCalculator = new StandardDeliveryCalculator();
+    private final CashRegister cashRegister = new CashRegister(inventory, pos, deliveryCalculator);
 
     private int cardCounter = 0;
 
@@ -123,6 +131,27 @@ public class Supermarket {
             throw new IllegalArgumentException("Unknown customer: " + username);
         }
         return customer;
+    }
+
+    // ---- Delivery & checkout ----
+
+    /**
+     * Registers a pending home-delivery request for a customer (R7). The request
+     * is applied to the cart of the next checkout opened for that customer.
+     */
+    public void requestDelivery(String customerUsername, String address) {
+        requireCustomer(customerUsername); // validates the customer exists
+        pendingDeliveries.put(customerUsername, new DeliveryRequest(address, DEFAULT_DISTANCE_KM));
+    }
+
+    /**
+     * Opens a checkout for the given customer on the cash register, consuming any
+     * pending delivery request so the delivery fee is included in the bill.
+     */
+    public void openCheckout(String customerUsername) {
+        Customer customer = requireCustomer(customerUsername);
+        DeliveryRequest delivery = pendingDeliveries.remove(customerUsername);
+        cashRegister.startCheckout(customer, delivery);
     }
 
     // ---- Components ----

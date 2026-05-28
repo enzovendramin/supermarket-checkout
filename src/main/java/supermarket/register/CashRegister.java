@@ -1,5 +1,7 @@
 package supermarket.register;
 
+import supermarket.delivery.DeliveryCalculator;
+import supermarket.delivery.DeliveryRequest;
 import supermarket.discount.DiscountPlan;
 import supermarket.inventory.Inventory;
 import supermarket.model.Cart;
@@ -19,27 +21,36 @@ import supermarket.payment.POSDevice;
 public class CashRegister {
     private final Inventory inventory;
     private final POSDevice pos;
+    private final DeliveryCalculator deliveryCalculator;
 
     private Customer currentCustomer;
     private Cart cart;
     private boolean checkoutOpen = false;
-    private double pendingDeliveryCost = 0.0;
+    private DeliveryRequest pendingDelivery;
 
     private double totalRevenue = 0.0;
     private Receipt lastReceipt;
 
-    public CashRegister(Inventory inventory, POSDevice pos) {
+    public CashRegister(Inventory inventory, POSDevice pos, DeliveryCalculator deliveryCalculator) {
         this.inventory = inventory;
         this.pos = pos;
+        this.deliveryCalculator = deliveryCalculator;
     }
 
-    /** Opens a checkout for a customer, loading their discount plan. */
+    /** Opens a checkout for a customer with no home delivery. */
     public void startCheckout(Customer customer) {
+        startCheckout(customer, null);
+    }
+
+    /**
+     * Opens a checkout for a customer, loading their discount plan and an
+     * optional pending home-delivery request (R7).
+     */
+    public void startCheckout(Customer customer, DeliveryRequest delivery) {
         this.currentCustomer = customer;
         this.cart = new Cart();
         this.checkoutOpen = true;
-        // Delivery cost is computed by the delivery module (R7/R8) in a later phase.
-        this.pendingDeliveryCost = 0.0;
+        this.pendingDelivery = delivery;
     }
 
     public void scanItem(Item item, int quantity) {
@@ -50,15 +61,12 @@ public class CashRegister {
         cart.addEntry(new CartEntry(item, quantity));
     }
 
-    /** Sets the (pre-discount) delivery cost for this checkout; used by R7/R8. */
-    public void setPendingDeliveryCost(double cost) {
-        this.pendingDeliveryCost = cost;
-    }
-
     /**
      * Computes the bill: each item is priced through its category's pricing
      * policy (R6), the customer's discount plan is applied to the subtotal (R5),
-     * and the plan-adjusted delivery fee is added (R8/R8b).
+     * and—if a delivery was requested—the plan-adjusted delivery fee is added
+     * (R8/R8b). Throws {@code DeliveryNotSupportedException} if the order is too
+     * heavy to deliver.
      */
     public Receipt computeBill() {
         requireOpenCheckout();
@@ -74,7 +82,14 @@ public class CashRegister {
         }
 
         double afterPlan = plan.applyDiscount(afterCategory);
-        double deliveryCost = plan.applyDeliveryDiscount(pendingDeliveryCost);
+
+        double deliveryCost = 0.0;
+        if (pendingDelivery != null) {
+            double rawFee = deliveryCalculator.computeFee(
+                cart.totalWeightKg(), pendingDelivery.getDistanceKm(), afterPlan);
+            deliveryCost = plan.applyDeliveryDiscount(rawFee);
+        }
+
         double total = afterPlan + deliveryCost;
 
         lastReceipt = new Receipt(
@@ -126,7 +141,7 @@ public class CashRegister {
         checkoutOpen = false;
         currentCustomer = null;
         cart = null;
-        pendingDeliveryCost = 0.0;
+        pendingDelivery = null;
     }
 
     private void requireOpenCheckout() {
