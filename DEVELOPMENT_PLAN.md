@@ -51,7 +51,7 @@ SupermarketCheckout/
 - [x] **Fase 6** — Inventário + Observer: `Inventory` notifica `ManagerNotifier`/`SupplierNotifier` ao atingir threshold (R9)
 - [x] **Fase 7** — Entrega Domiciliar: `StandardDeliveryCalculator` (peso+distância), descontos por plano (R8b), `TimeSlot`/`DeliveryManager` para janelas de 2h e preço dinâmico (R10)
 - [x] **Fase 8** — CLUI completa: 20 comandos, tratamento de erros, `runTest`, `setup`, `simulatePayment`
-- [ ] **Fase 9** — `my_supermarket.ini` + cenários de teste adicionais
+- [x] **Fase 9** — `my_supermarket.ini` + cenários de teste adicionais
 - [ ] **Fase 10** — JUnit Tests (um `*Test.java` por classe, sem getters/setters)
 - [ ] **Fase 11** — UML (class diagram obrigatório + use case + sequence) + Relatório PDF
 

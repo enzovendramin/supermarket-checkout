@@ -48,6 +48,20 @@ class CliDispatcherTest {
     }
 
     @Test
+    void runsTestScenario2EndToEnd() {
+        dispatcher.execute("runTest testScenario2.txt");
+
+        // Two platinum sales: €6.916 + €47.32 = €54.236 (free delivery throughout).
+        assertEquals(54.236, market.getRevenue(), 1e-9);
+        // Beef sold down to 2 then restocked by 20 -> 22.
+        assertEquals(22, market.getInventory().getStock(market.getItem("beef")));
+        // Unhappy payment paths and the >50 kg delivery refusal were reported.
+        assertTrue(output().contains("Payment refused: PIN_WRONG"));
+        assertTrue(output().contains("Payment refused: AUTH_DENIED"));
+        assertTrue(output().contains("Home delivery refused"));
+    }
+
+    @Test
     void tokenizerKeepsQuotedAddressTogether() {
         dispatcher.execute("login ceo 123456789");
         dispatcher.execute("registerCustomer Alice Martin alice \"12 rue de la Paix\" pwd");

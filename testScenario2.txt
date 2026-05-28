@@ -1,0 +1,96 @@
+# =========================================================================
+# testScenario2.txt
+# -------------------------------------------------------------------------
+# Complementary end-to-end scenario for the mysupermarket CLUI. It exercises
+# requirements that testScenario1.txt does not, namely:
+#
+#   1. platinum plan: 30% discount on items and FREE home delivery (R5, R8b).
+#   2. category-level pricing policy on dairy (R6: -5%).
+#   3. payment unhappy paths forced via simulatePayment: PIN_WRONG and
+#      AUTH_DENIED, followed by a successful payment (R4).
+#   4. low-stock alert on a perishable item and its clearing via restock
+#      (R9, Observer pattern + restock).
+#   5. home-delivery refusal for an order above 50 kg (R8).
+#
+# Lines starting with '#' are comments and must be ignored by runTest.
+# =========================================================================
+
+
+# ---- 1. Manager bootstraps the system ----
+login ceo 123456789
+setup
+
+# ---- 2. Manager extends the catalogue and discounts the dairy family ----
+# addItem <name> <category> <unitPrice> <weight-kg> <initialStock>
+addItem milk    dairy                  1.20 1.00  10
+addItem cheese  dairy                  4.00 0.50  10
+addItem beef    meat                  15.00 1.00   6
+addItem melon   fruit-and-vegetables   3.00 6.00  20
+setCategoryDiscount dairy 5
+
+# ---- 3. Register a cashier and a customer ----
+registerCashier  Carl Cash carl carlpwd
+registerCustomer Dora Diaz dora "5 avenue Mozart" dorapwd
+logout
+
+
+# ---- 4. Customer goes platinum and requests home delivery ----
+login dora dorapwd
+subscribeToPlan platinum
+requestDelivery "5 avenue Mozart"
+logout
+
+
+# ---- 5. Cashier checkout: platinum => 30% off items, free delivery ----
+login carl carlpwd
+startCheckout dora
+scanItem milk   2
+scanItem cheese 2
+# Bill: dairy -5% per item, then platinum -30%, delivery free (platinum).
+computeBill
+
+# Two failed attempts (wrong PIN, then unregistered card), then success.
+simulatePayment PIN_WRONG
+pay 4242424242424242 0000
+simulatePayment AUTH_DENIED
+pay 9999999999999999 1234
+simulatePayment SUCCESS
+pay 4242424242424242 1234
+logout
+
+
+# ---- 6. A second sale pushes 'beef' below its low-stock threshold (R9) ----
+# beef initial stock = 6; buying 4 leaves 2 (<= threshold 3) -> alert fires.
+login carl carlpwd
+startCheckout dora
+scanItem cheese 2
+scanItem beef   4
+computeBill
+simulatePayment SUCCESS
+pay 4242424242424242 1234
+logout
+
+
+# ---- 7. Manager restocks beef to clear its low-stock state ----
+login ceo 123456789
+restock beef 20
+showInventory
+logout
+
+
+# ---- 8. Home delivery refused for an order above 50 kg (R8) ----
+login dora dorapwd
+requestDelivery "5 avenue Mozart"
+logout
+login carl carlpwd
+startCheckout dora
+scanItem melon 10
+# 10 x 6 kg = 60 kg > 50 kg -> computeBill reports the delivery refusal.
+computeBill
+logout
+
+
+# ---- 9. Manager inspects the resulting revenue ----
+login ceo 123456789
+showRevenue
+logout
