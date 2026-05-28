@@ -52,7 +52,7 @@ SupermarketCheckout/
 - [x] **Fase 7** — Entrega Domiciliar: `StandardDeliveryCalculator` (peso+distância), descontos por plano (R8b), `TimeSlot`/`DeliveryManager` para janelas de 2h e preço dinâmico (R10)
 - [x] **Fase 8** — CLUI completa: 20 comandos, tratamento de erros, `runTest`, `setup`, `simulatePayment`
 - [x] **Fase 9** — `my_supermarket.ini` + cenários de teste adicionais
-- [ ] **Fase 10** — JUnit Tests (um `*Test.java` por classe, sem getters/setters)
+- [x] **Fase 10** — JUnit Tests (um `*Test.java` por classe, sem getters/setters)
 - [ ] **Fase 11** — UML (class diagram obrigatório + use case + sequence) + Relatório PDF
 
 ---
