@@ -59,6 +59,8 @@ supermarket
 | **Strategy** | `DeliveryCalculator` → StandardDeliveryCalculator | The delivery charging scheme can be replaced without touching the bill logic (R8). |
 | **Factory** | `DiscountPlanFactory` | Creates a plan from its string name (used by `subscribeToPlan`), centralising the mapping and isolating the rest of the system from concrete plan classes. |
 | **Observer** | `Inventory` → `StockObserver` (`ManagerNotifier`, `SupplierNotifier`) | Decouples stock bookkeeping from who reacts to low stock; new listeners can subscribe without modifying `Inventory` (R9, explicitly required). |
+| **Strategy** | `Promotion` → `BuyNGetMFreePromotion`, `PercentageCouponPromotion` (extension) | Pluggable store promotions aggregated by `PromotionEngine`; new offers need no checkout change. |
+| **Command** | `Command` → `ScanItemCommand` + `CommandHistory` (extension) | Makes checkout actions reversible, enabling `undo`/`redo` of a mis-scan. |
 | **Facade** | `TransactionAuthorisationSystem` | Hides the banking authorisation protocol behind a single `authorise(card, amount)` method. |
 | **(Mediator-like)** | `CashRegister` / `Supermarket` | `Supermarket` is the system core wiring components together; `CashRegister` orchestrates a checkout session across cart, plan, delivery, POS and inventory. |
 
@@ -72,15 +74,18 @@ supermarket
    applying any bulk discount once the quantity threshold is reached.
 2. **Per-item category policy** (R6): the unit price is passed through its
    `Category.pricingPolicy` (e.g. −10% on fruit-and-vegetables).
-3. **Customer discount plan** (R5): the resulting subtotal is passed through the
-   customer's `DiscountPlan` (e.g. Prime −20% only if subtotal ≥ €50; Platinum
-   −30% always).
-4. **Delivery fee** (R8/R8b): if a delivery was requested, the
+3. **Promotions** (extension): `PromotionEngine` discounts (coupons, buy-N-get-M)
+   are subtracted from the items subtotal.
+4. **Customer discount plan** (R5): the result is passed through the customer's
+   `DiscountPlan` (e.g. Prime −20% only if subtotal ≥ €50; Platinum −30% always).
+5. **VAT** (extension): per-category tax computed on the net line prices.
+6. **Delivery fee** (R8/R8b): if a delivery was requested, the
    `DeliveryCalculator` computes the fee from total weight, distance and order
    value, then the plan's `applyDeliveryDiscount` reduces it (Prime 50%,
    Platinum free).
 
-`total = items_after_plan + delivery_after_plan`.
+`total = items_after_plan + VAT + delivery_after_plan`. (Promotions and VAT
+default to zero, so the core requirements behave exactly as specified.)
 
 ---
 
@@ -123,7 +128,7 @@ threshold.
 
 ## 6. Test Scenarios (mandatory description)
 
-Three scenario files are provided and run via `runTest <file>` in the CLUI.
+Four scenario files are provided and run via `runTest <file>` in the CLUI.
 
 ### `testScenario1.txt`
 End-to-end "happy path" exercising the core requirements:
@@ -160,6 +165,15 @@ Focused scenario for two features not exercised above:
    (the third booking is **refused** — anti-overbooking), and **dynamic pricing**
    quotes — peak ×1.5 (€22.50) and an "eco" nearby-truck discount ×0.8 (€12.00).
 
+### `testScenario4.txt` (extensions)
+Demonstrates the beyond-spec extensions:
+1. **Command pattern:** a mis-scanned line is corrected with `undo`/`redo`.
+2. **Promotions:** a "buy 1 get 1 free" on *soda* and a 5% coupon.
+3. **VAT:** 10% tax on the *grocery* category.
+4. **Loyalty:** points earned on payment.
+   Bill: raw €18.00 − €6.90 promotions = €11.10 + €1.80 VAT = **€12.90**, earning
+   **12 loyalty points**.
+
 ---
 
 ## 7. How to Test the Realisation (mandatory)
@@ -175,6 +189,7 @@ accepts commands. To run a scenario from inside the CLUI:
 runTest testScenario1.txt
 runTest testScenario2.txt
 runTest testScenario3.txt
+runTest testScenario4.txt
 ```
 Type `help` to list all commands, `exit` to quit.
 
@@ -182,7 +197,7 @@ Type `help` to list all commands, `exit` to quit.
 ```bash
 mvn test
 ```
-**61 tests** cover the system. They are organised one test class per unit:
+**73 tests** cover the system. They are organised one test class per unit:
 
 | Test class | What it verifies |
 |------------|------------------|
@@ -195,6 +210,10 @@ mvn test
 | `CliDispatcherTest` | All three scenarios end-to-end, quote-aware parsing, permission/syntax/misuse errors, R10 slot commands. |
 | `DiscountPlanTest` | Plan discounts, delivery discounts, **annual fees**, factory. |
 | `ItemTest` | Quantity-based bulk pricing (R3). |
+| `CommandUndoRedoTest` | Undo/redo of scans (Command pattern). |
+| `PromotionEngineTest` | Buy-N-get-M, percentage coupon, combined discount. |
+| `LoyaltyProgramTest` | Points earned per euro. |
+| `BillExtrasTest` | Bill with coupon + VAT, BOGO, loyalty earned on payment. |
 | `PricingPolicyTest`, `CartTest`, `BankCardTest`, `TimeSlotTest`, `PaymentSimulatorTest`, `TransactionAuthorisationSystemTest`, `SupermarketTest` | Focused unit tests per class (incl. fee charging, numerical IDs, bulk discount). |
 
 Reproducing the tests is a single `mvn test`; the scenario files are read from
@@ -230,7 +249,25 @@ exact same command sequences.
 
 ---
 
-## 9. Workload Split (mandatory)
+## 9. Extensions Beyond the Specification
+
+Built on top of the specified baseline (tagged `v1.0`), these optional features
+add depth without altering the required behaviour (all default to no-op):
+
+| Extension | Design | Where |
+|-----------|--------|-------|
+| **Undo/redo of scans** | **Command** pattern: reversible `Command` objects with a `CommandHistory` invoker | `command/`, CLUI `undo`/`redo` |
+| **Store promotions** | **Strategy**: `Promotion` (buy-N-get-M, % coupon) aggregated by `PromotionEngine` | `promotion/`, CLUI `addBogoPromotion`/`addCoupon` |
+| **Per-category VAT** | tax rate on `Category`, applied to net line prices in the bill | `model/Category`, CLUI `setCategoryTax` |
+| **Loyalty points** | `LoyaltyProgram` awards points per euro spent on payment | `loyalty/`, CLUI `showPoints` |
+
+These are exercised end-to-end by `testScenario4.txt` and covered by
+`CommandUndoRedoTest`, `PromotionEngineTest`, `LoyaltyProgramTest` and
+`BillExtrasTest`.
+
+---
+
+## 10. Workload Split (mandatory)
 
 > Fill the **Member** column with each team member's name. Columns follow the
 > mandatory format: *design | code | UML | JUnit | task/class*.
@@ -246,11 +283,14 @@ exact same command sequences.
 | Delivery & logistics (`delivery`, R8/R10) | ✔ | ✔ | ✔ | `DeliveryCalculatorTest`, `DeliveryManagerTest`, `TimeSlotTest` | _TBD_ |
 | System core (`register.Supermarket`) | ✔ | ✔ | ✔ | `SupermarketTest` | _TBD_ |
 | CLUI (`cli`) + scenarios | ✔ | ✔ | ✔ | `CliDispatcherTest`, `DeliveryCheckoutTest` | _TBD_ |
+| Undo/redo (`command`, Command — extension) | ✔ | ✔ | ✔ | `CommandUndoRedoTest` | _TBD_ |
+| Promotions (`promotion`, Strategy — extension) | ✔ | ✔ | ✔ | `PromotionEngineTest`, `BillExtrasTest` | _TBD_ |
+| Loyalty & VAT (`loyalty`, `Category` VAT — extension) | ✔ | ✔ | ✔ | `LoyaltyProgramTest`, `BillExtrasTest` | _TBD_ |
 | Report & UML diagrams | ✔ | — | ✔ | — | _TBD_ |
 
 ---
 
-## 10. How to Build the Environment
+## 11. How to Build the Environment
 
 ```bash
 # Requires JDK 17+ (developed on JDK 21) and Maven 3.9+

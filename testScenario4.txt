@@ -1,0 +1,52 @@
+# =========================================================================
+# testScenario4.txt
+# -------------------------------------------------------------------------
+# Demonstrates the extensions implemented beyond the specification:
+#
+#   1. Command pattern: undo/redo of a scan (correcting a mis-scan).
+#   2. Per-category VAT added to the bill.
+#   3. Store promotions: a "buy 1 get 1 free" offer and a percentage coupon.
+#   4. Loyalty points earned on a successful payment.
+#
+# Lines starting with '#' are comments and must be ignored by runTest.
+# =========================================================================
+
+
+# ---- 1. Manager bootstraps, sets VAT and promotions ----
+login ceo 123456789
+setup
+registerCashier Carl Cash carl carlpwd
+registerCustomer Eve Stone eve "9 rue Test" evepwd
+addItem soda grocery 3.00 1.00 100
+addItem rice grocery 2.00 1.00 100
+setCategoryTax grocery 10
+addBogoPromotion soda 1 1
+addCoupon 5
+logout
+
+
+# ---- 2. Cashier checkout with a mis-scan corrected via undo/redo ----
+login carl carlpwd
+startCheckout eve
+scanItem soda 4
+scanItem rice 5
+# Mis-scanned rice: undo the last scan, then scan the correct quantity.
+undo
+scanItem rice 3
+# Bill: soda 4 (BOGO -> 2 free), rice 3, 5% coupon, +10% VAT.
+computeBill
+simulatePayment SUCCESS
+pay 4242424242424242 1234
+logout
+
+
+# ---- 3. Customer checks the loyalty points earned ----
+login eve evepwd
+showPoints
+logout
+
+
+# ---- 4. Manager inspects revenue ----
+login ceo 123456789
+showRevenue
+logout

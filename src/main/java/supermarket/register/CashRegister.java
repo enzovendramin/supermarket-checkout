@@ -1,9 +1,12 @@
 package supermarket.register;
 
+import supermarket.command.CommandHistory;
+import supermarket.command.ScanItemCommand;
 import supermarket.delivery.DeliveryCalculator;
 import supermarket.delivery.DeliveryRequest;
 import supermarket.discount.DiscountPlan;
 import supermarket.inventory.Inventory;
+import supermarket.loyalty.LoyaltyProgram;
 import supermarket.model.Cart;
 import supermarket.model.CartEntry;
 import supermarket.model.Customer;
@@ -11,6 +14,7 @@ import supermarket.model.Item;
 import supermarket.model.Receipt;
 import supermarket.payment.PaymentResult;
 import supermarket.payment.POSDevice;
+import supermarket.promotion.PromotionEngine;
 
 /**
  * Orchestrates a checkout session (spec 2.4): scanning items, computing the
@@ -22,19 +26,26 @@ public class CashRegister {
     private final Inventory inventory;
     private final POSDevice pos;
     private final DeliveryCalculator deliveryCalculator;
+    private final PromotionEngine promotionEngine;
+    private final LoyaltyProgram loyaltyProgram;
 
     private Customer currentCustomer;
     private Cart cart;
     private boolean checkoutOpen = false;
     private DeliveryRequest pendingDelivery;
+    private CommandHistory history = new CommandHistory();
 
     private double totalRevenue = 0.0;
     private Receipt lastReceipt;
+    private int lastPointsEarned = 0;
 
-    public CashRegister(Inventory inventory, POSDevice pos, DeliveryCalculator deliveryCalculator) {
+    public CashRegister(Inventory inventory, POSDevice pos, DeliveryCalculator deliveryCalculator,
+                        PromotionEngine promotionEngine, LoyaltyProgram loyaltyProgram) {
         this.inventory = inventory;
         this.pos = pos;
         this.deliveryCalculator = deliveryCalculator;
+        this.promotionEngine = promotionEngine;
+        this.loyaltyProgram = loyaltyProgram;
     }
 
     /** Opens a checkout for a customer with no home delivery. */
@@ -51,14 +62,28 @@ public class CashRegister {
         this.cart = new Cart();
         this.checkoutOpen = true;
         this.pendingDelivery = delivery;
+        this.history = new CommandHistory();
     }
 
+    /** Scans an item as an undoable command (Command pattern). */
     public void scanItem(Item item, int quantity) {
         requireOpenCheckout();
         if (quantity <= 0) {
             throw new IllegalArgumentException("Quantity must be positive.");
         }
-        cart.addEntry(new CartEntry(item, quantity));
+        history.run(new ScanItemCommand(cart, item, quantity));
+    }
+
+    /** Undoes the last reversible checkout action (e.g. a scan); returns its description. */
+    public String undoLastAction() {
+        requireOpenCheckout();
+        return history.undo();
+    }
+
+    /** Redoes the last undone checkout action; returns its description. */
+    public String redoLastAction() {
+        requireOpenCheckout();
+        return history.redo();
     }
 
     /**
@@ -74,27 +99,34 @@ public class CashRegister {
 
         double rawTotal = 0.0;
         double afterCategory = 0.0;
+        double tax = 0.0;
         for (CartEntry entry : cart.getEntries()) {
             Item item = entry.getItem();
             int qty = entry.getQuantity();
             double unitPrice = item.unitPriceFor(qty); // R3: price may depend on quantity
             rawTotal += unitPrice * qty;
-            afterCategory += item.getCategory().getPricingPolicy().apply(unitPrice) * qty;
+            double netLine = item.getCategory().getPricingPolicy().apply(unitPrice) * qty; // R6
+            afterCategory += netLine;
+            tax += netLine * item.getCategory().getVatRate() / 100.0; // VAT on the net line price
         }
 
-        double afterPlan = plan.applyDiscount(afterCategory);
+        // Promotions reduce the items subtotal, capped so it never goes negative.
+        double promoDiscount = Math.min(promotionEngine.totalDiscount(cart), afterCategory);
+        double afterPromo = afterCategory - promoDiscount;
+
+        double afterPlan = plan.applyDiscount(afterPromo); // R5
 
         double deliveryCost = 0.0;
         if (pendingDelivery != null) {
             double rawFee = deliveryCalculator.computeFee(
                 cart.totalWeightKg(), pendingDelivery.getDistanceKm(), afterPlan);
-            deliveryCost = plan.applyDeliveryDiscount(rawFee);
+            deliveryCost = plan.applyDeliveryDiscount(rawFee); // R8/R8b
         }
 
-        double total = afterPlan + deliveryCost;
+        double total = afterPlan + tax + deliveryCost;
 
-        lastReceipt = new Receipt(
-            currentCustomer.getUsername(), rawTotal, afterPlan, deliveryCost, total);
+        lastReceipt = new Receipt(currentCustomer.getUsername(),
+            rawTotal, promoDiscount, afterPlan, tax, deliveryCost, total);
         return lastReceipt;
     }
 
@@ -123,6 +155,8 @@ public class CashRegister {
                 inventory.decrement(entry.getItem(), entry.getQuantity());
             }
             totalRevenue += receipt.getTotal();
+            lastPointsEarned = loyaltyProgram.pointsFor(receipt.getTotal());
+            currentCustomer.addLoyaltyPoints(lastPointsEarned); // loyalty rewards
             closeCheckout();
         }
         return result;
@@ -137,6 +171,7 @@ public class CashRegister {
     public Customer getCurrentCustomer() { return currentCustomer; }
     public Receipt getLastReceipt() { return lastReceipt; }
     public double getTotalRevenue() { return totalRevenue; }
+    public int getLastPointsEarned() { return lastPointsEarned; }
 
     private void closeCheckout() {
         checkoutOpen = false;

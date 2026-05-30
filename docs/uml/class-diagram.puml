@@ -26,8 +26,9 @@ package users {
 package model {
     class Customer {
         - address : String
+        - numericalId : int
+        - loyaltyPoints : int
         + getDiscountPlan() : DiscountPlan
-        + setDiscountPlan(p)
     }
     class Item {
         - name : String
@@ -38,6 +39,7 @@ package model {
     }
     class Category {
         - name : String
+        - vatRate : double
     }
     class Cart {
         + addEntry(e)
@@ -173,6 +175,48 @@ package delivery {
     DeliveryManager "1" o--> "*" TimeSlot : bookings
 }
 
+' ===================== command (Command — extension) =====================
+package command {
+    interface Command {
+        + execute()
+        + undo()
+        + describe() : String
+    }
+    class ScanItemCommand
+    class CommandHistory {
+        + run(c)
+        + undo() : String
+        + redo() : String
+    }
+    Command <|.. ScanItemCommand
+    CommandHistory "1" o--> "*" Command
+    ScanItemCommand ..> Cart
+}
+
+' ===================== promotion (Strategy — extension) =====================
+package promotion {
+    interface Promotion {
+        + discount(cart) : double
+        + describe() : String
+    }
+    class BuyNGetMFreePromotion
+    class PercentageCouponPromotion
+    class PromotionEngine {
+        + addPromotion(p)
+        + totalDiscount(cart) : double
+    }
+    Promotion <|.. BuyNGetMFreePromotion
+    Promotion <|.. PercentageCouponPromotion
+    PromotionEngine "1" o--> "*" Promotion
+}
+
+' ===================== loyalty (extension) =====================
+package loyalty {
+    class LoyaltyProgram {
+        + pointsFor(amount) : int
+    }
+}
+
 ' ===================== register (orchestration) =====================
 package register {
     class CashRegister {
@@ -203,9 +247,13 @@ package register {
     CashRegister "1" --> "1" Inventory
     CashRegister "1" --> "1" POSDevice
     CashRegister "1" --> "1" DeliveryCalculator
+    CashRegister "1" --> "1" PromotionEngine
+    CashRegister "1" --> "1" LoyaltyProgram
+    CashRegister "1" --> "1" CommandHistory
     CashRegister ..> Cart
     CashRegister ..> Receipt
     CashRegister ..> Customer
+    Supermarket "1" --> "1" PromotionEngine
 }
 
 ' ===================== cli =====================

@@ -13,11 +13,15 @@ import supermarket.discount.DiscountPlanFactory;
 import supermarket.inventory.Inventory;
 import supermarket.inventory.ManagerNotifier;
 import supermarket.inventory.SupplierNotifier;
+import supermarket.loyalty.LoyaltyProgram;
 import supermarket.model.BankCard;
 import supermarket.model.Category;
 import supermarket.model.Customer;
 import supermarket.model.Item;
 import supermarket.pricing.CategoryDiscount;
+import supermarket.promotion.BuyNGetMFreePromotion;
+import supermarket.promotion.PercentageCouponPromotion;
+import supermarket.promotion.PromotionEngine;
 import supermarket.users.Cashier;
 import supermarket.users.Manager;
 import supermarket.users.User;
@@ -42,7 +46,10 @@ public class Supermarket {
     private final TransactionAuthorisationSystem tas = new TransactionAuthorisationSystem();
     private final POSDevice pos = new POSDevice(tas);
     private final DeliveryCalculator deliveryCalculator = new StandardDeliveryCalculator();
-    private final CashRegister cashRegister = new CashRegister(inventory, pos, deliveryCalculator);
+    private final PromotionEngine promotionEngine = new PromotionEngine();
+    private final LoyaltyProgram loyaltyProgram = new LoyaltyProgram();
+    private final CashRegister cashRegister =
+        new CashRegister(inventory, pos, deliveryCalculator, promotionEngine, loyaltyProgram);
     /** Smart-logistics module (R10): 2 delivery vehicles per 2-hour slot. */
     private final DeliveryManager deliveryManager = new DeliveryManager(2);
 
@@ -128,11 +135,32 @@ public class Supermarket {
 
     /** Applies a category-level pricing policy (R6). */
     public void setCategoryDiscount(String categoryName, double percent) {
+        requireCategory(categoryName).setPricingPolicy(new CategoryDiscount(percent));
+    }
+
+    /** Sets the VAT rate (percentage) applied to a category. */
+    public void setCategoryTax(String categoryName, double percent) {
+        requireCategory(categoryName).setVatRate(percent);
+    }
+
+    private Category requireCategory(String categoryName) {
         Category category = categories.get(categoryName);
         if (category == null) {
             throw new IllegalArgumentException("Unknown category: " + categoryName);
         }
-        category.setPricingPolicy(new CategoryDiscount(percent));
+        return category;
+    }
+
+    // ---- Promotions ----
+
+    /** Adds a "buy N get M free" promotion on an item. */
+    public void addBogoPromotion(String itemName, int buy, int free) {
+        promotionEngine.addPromotion(new BuyNGetMFreePromotion(requireItem(itemName), buy, free));
+    }
+
+    /** Adds a store-wide percentage coupon. */
+    public void addCoupon(double percent) {
+        promotionEngine.addPromotion(new PercentageCouponPromotion(percent));
     }
 
     // ---- Users ----

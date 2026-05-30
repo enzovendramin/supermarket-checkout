@@ -75,6 +75,22 @@ class CliDispatcherTest {
     }
 
     @Test
+    void runsTestScenario4EndToEnd() {
+        dispatcher.execute("runTest testScenario4.txt");
+
+        // soda 4 (BOGO: 2 free = -€6) + rice 3 = raw €18; coupon 5% = -€0.90;
+        // afterPromo €11.10; +10% VAT (€1.80) = total €12.90.
+        assertEquals(12.90, market.getRevenue(), 1e-9);
+        // Loyalty: floor(€12.90) = 12 points for Eve.
+        assertEquals(12, market.requireCustomer("eve").getLoyaltyPoints());
+        // The mis-scan was undone (Command pattern) and the bill shows promo + VAT.
+        assertTrue(output().contains("Undone: scan 5 x rice"));
+        assertTrue(output().contains("Promotions:"));
+        assertTrue(output().contains("VAT:"));
+        assertTrue(output().contains("Loyalty points earned: 12"));
+    }
+
+    @Test
     void tokenizerKeepsQuotedAddressTogether() {
         dispatcher.execute("login ceo 123456789");
         dispatcher.execute("registerCustomer Alice Martin alice \"12 rue de la Paix\" pwd");

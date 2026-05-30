@@ -9,6 +9,9 @@ public class Cart {
 
     public void addEntry(CartEntry entry) { entries.add(entry); }
 
+    /** Removes a specific entry (by identity); used to undo a scan. */
+    public boolean removeEntry(CartEntry entry) { return entries.remove(entry); }
+
     public List<CartEntry> getEntries() { return Collections.unmodifiableList(entries); }
 
     public void clear() { entries.clear(); }

@@ -93,9 +93,15 @@ public class CommandDispatcher {
             case "restock"             -> restock(args);
             case "setCategoryDiscount" -> setCategoryDiscount(args);
             case "setQuantityDiscount" -> setQuantityDiscount(args);
+            case "setCategoryTax"      -> setCategoryTax(args);
+            case "addBogoPromotion"    -> addBogoPromotion(args);
+            case "addCoupon"           -> addCoupon(args);
             case "subscribeToPlan"     -> subscribeToPlan(args);
+            case "showPoints"          -> showPoints(args);
             case "startCheckout"       -> startCheckout(args);
             case "scanItem"            -> scanItem(args);
+            case "undo"                -> undo(args);
+            case "redo"                -> redo(args);
             case "computeBill"         -> computeBill(args);
             case "requestDelivery"     -> requestDelivery(args);
             case "pay"                 -> pay(args);
@@ -188,6 +194,31 @@ public class CommandDispatcher {
         out.printf(Locale.US, "Bulk discount on '%s': %.1f%% from %d units.%n", args[0], percent, minQty);
     }
 
+    private void setCategoryTax(String[] args) {
+        requireArgs(args, 2, "setCategoryTax <categoryName> <vatPercent>");
+        context.requireRole("manager");
+        double percent = parseDouble(args[1], "vatPercent");
+        context.getMarket().setCategoryTax(args[0], percent);
+        out.printf(Locale.US, "VAT for category '%s' set to %.1f%%.%n", args[0], percent);
+    }
+
+    private void addBogoPromotion(String[] args) {
+        requireArgs(args, 3, "addBogoPromotion <itemName> <buy> <free>");
+        context.requireRole("manager");
+        int buy = parseInt(args[1], "buy");
+        int free = parseInt(args[2], "free");
+        context.getMarket().addBogoPromotion(args[0], buy, free);
+        out.printf("Promotion added: buy %d get %d free on '%s'.%n", buy, free, args[0]);
+    }
+
+    private void addCoupon(String[] args) {
+        requireArgs(args, 1, "addCoupon <percent>");
+        context.requireRole("manager");
+        double percent = parseDouble(args[0], "percent");
+        context.getMarket().addCoupon(percent);
+        out.printf(Locale.US, "Coupon added: %.0f%% off.%n", percent);
+    }
+
     private void showInventory(String[] args) {
         requireArgs(args, 0, "showInventory");
         context.requireRole("manager");
@@ -253,6 +284,12 @@ public class CommandDispatcher {
         out.printf("Home delivery requested to '%s' for the next purchase.%n", args[0]);
     }
 
+    private void showPoints(String[] args) {
+        requireArgs(args, 0, "showPoints");
+        User user = context.requireRole("customer");
+        out.printf("You have %d loyalty points.%n", ((Customer) user).getLoyaltyPoints());
+    }
+
     // ---- Cashier commands ----
 
     private void startCheckout(String[] args) {
@@ -271,6 +308,20 @@ public class CommandDispatcher {
         out.printf(Locale.US, "Scanned %d x %s @ €%.2f.%n", qty, item.getName(), item.getUnitPrice());
     }
 
+    private void undo(String[] args) {
+        requireArgs(args, 0, "undo");
+        context.requireRole("cashier");
+        String description = context.getMarket().getCashRegister().undoLastAction();
+        out.println("Undone: " + description + ".");
+    }
+
+    private void redo(String[] args) {
+        requireArgs(args, 0, "redo");
+        context.requireRole("cashier");
+        String description = context.getMarket().getCashRegister().redoLastAction();
+        out.println("Redone: " + description + ".");
+    }
+
     private void computeBill(String[] args) {
         requireArgs(args, 0, "computeBill");
         context.requireRole("cashier");
@@ -286,6 +337,7 @@ public class CommandDispatcher {
         if (result == PaymentResult.SUCCESS) {
             out.println("Payment approved.");
             out.println(register.getLastReceipt());
+            out.printf("Loyalty points earned: %d.%n", register.getLastPointsEarned());
         } else {
             out.println("Payment refused: " + result + ".");
         }
@@ -338,14 +390,20 @@ public class CommandDispatcher {
         out.println("  restock <itemName> <quantity>                            (manager)");
         out.println("  setCategoryDiscount <categoryName> <percent>             (manager)");
         out.println("  setQuantityDiscount <itemName> <minQty> <percent>        (manager, R3)");
+        out.println("  setCategoryTax <categoryName> <vatPercent>               (manager)");
+        out.println("  addBogoPromotion <itemName> <buy> <free>                 (manager)");
+        out.println("  addCoupon <percent>                                      (manager)");
         out.println("  showInventory                                            (manager)");
         out.println("  showRevenue                                              (manager)");
         out.println("  bookDeliverySlot <startHour>                             (manager, R10)");
         out.println("  quoteDeliverySlot <startHour> <truckNearby>              (manager, R10)");
         out.println("  subscribeToPlan <planName>                               (customer)");
+        out.println("  showPoints                                               (customer)");
         out.println("  requestDelivery <address>                                (customer)");
         out.println("  startCheckout <customerUsername>                         (cashier)");
         out.println("  scanItem <itemName> <quantity>                           (cashier)");
+        out.println("  undo                                                     (cashier)");
+        out.println("  redo                                                     (cashier)");
         out.println("  computeBill                                              (cashier)");
         out.println("  pay <cardNumber> <pin>                                   (cashier)");
         out.println("  simulatePayment <outcome>                                (cashier)");
