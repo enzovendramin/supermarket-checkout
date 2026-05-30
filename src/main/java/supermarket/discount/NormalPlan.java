@@ -9,4 +9,7 @@ public class NormalPlan implements DiscountPlan {
 
     @Override
     public String getName() { return "normal"; }
+
+    @Override
+    public double getAnnualFee() { return 0.0; }
 }

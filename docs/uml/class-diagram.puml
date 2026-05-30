@@ -33,6 +33,8 @@ package model {
         - name : String
         - unitPrice : double
         - weightKg : double
+        + unitPriceFor(qty) : double
+        + setQuantityDiscount(min, pct)
     }
     class Category {
         - name : String
@@ -73,6 +75,7 @@ package discount {
     interface DiscountPlan {
         + applyDiscount(subtotal) : double
         + applyDeliveryDiscount(cost) : double
+        + getAnnualFee() : double
         + getName() : String
     }
     class NormalPlan
@@ -188,6 +191,7 @@ package register {
         + openCheckout(user)
     }
     Supermarket "1" --> "1" CashRegister
+    Supermarket "1" --> "1" DeliveryManager
     Supermarket "1" --> "1" Inventory
     Supermarket "1" --> "1" TransactionAuthorisationSystem
     Supermarket "1" --> "1" POSDevice

@@ -1,0 +1,52 @@
+# =========================================================================
+# testScenario3.txt
+# -------------------------------------------------------------------------
+# Focused scenario for two features not covered by scenarios 1 and 2:
+#
+#   1. Quantity-based pricing (R3): a bulk discount that applies only once the
+#      purchased quantity reaches a threshold.
+#   2. Smart logistics (R10): booking 2-hour delivery slots with anti-overbooking
+#      (capacity = 2 vehicles per slot) and dynamic pricing (peak surcharge,
+#      "eco" discount when a truck is already nearby).
+#
+# Lines starting with '#' are comments and must be ignored by runTest.
+# =========================================================================
+
+
+# ---- 1. Manager bootstraps and configures a bulk discount ----
+login ceo 123456789
+setup
+registerCashier Carl Cash carl carlpwd
+registerCustomer Eve Stone eve "9 rue Test" evepwd
+addItem rice grocery 2.00 1.00 100
+# 25% off the unit price from 10 units onwards (R3)
+setQuantityDiscount rice 10 25
+
+# ---- 2. R10: delivery-slot booking with anti-overbooking ----
+# Capacity is 2 vehicles per slot; the third booking of the same slot is refused.
+bookDeliverySlot 8
+bookDeliverySlot 8
+bookDeliverySlot 8
+
+# ---- 3. R10: dynamic pricing quotes (base flat fee €15) ----
+quoteDeliverySlot 18 false
+quoteDeliverySlot 10 true
+quoteDeliverySlot 10 false
+logout
+
+
+# ---- 4. R3 in a real checkout: 10 units of rice get the bulk price ----
+login carl carlpwd
+startCheckout eve
+scanItem rice 10
+# 10 x (2.00 - 25%) = 10 x 1.50 = 15.00
+computeBill
+simulatePayment SUCCESS
+pay 4242424242424242 1234
+logout
+
+
+# ---- 5. Manager inspects revenue (only the €15.00 rice sale) ----
+login ceo 123456789
+showRevenue
+logout

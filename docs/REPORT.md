@@ -38,13 +38,14 @@ supermarket
 | Requirement | Design impact |
 |-------------|---------------|
 | **R1, R2, R2b** — purchases are sets of bought items in mandatory categories | `Cart` aggregates `CartEntry` (item + quantity); `Category` is a first-class entity so policies can attach to it. |
-| **R3** — each item is priced | `Item` holds a unit price; `CartEntry.subtotal()` multiplies by quantity. |
+| **R3** — each item is priced, the price *may depend on quantity* | `Item` holds a base unit price and an optional bulk rule; `Item.unitPriceFor(qty)` applies a per-unit discount once a quantity threshold is reached (CLUI `setQuantityDiscount`). |
 | **R4** — payment by bank card | `POSDevice` + `TransactionAuthorisationSystem` model the POS↔bank protocol; `BankCard` carries number, PIN and balance. |
-| **R5 / R5b** — extensible discount plans | **Strategy** interface `DiscountPlan` with a **Factory** to create plans by name at runtime, so new plans need no changes to the checkout. |
+| **R5 / R5b** — extensible discount plans with annual fees | **Strategy** interface `DiscountPlan` (with `getAnnualFee()`) plus a **Factory** to create plans by name at runtime. `subscribeToPlan` charges the fee immediately (normal €0, prime €50, platinum €200) — debited from the card and added to revenue. |
 | **R6 / R6b** — extensible per-category pricing policies | **Strategy** interface `PricingPolicy` attached to each `Category`; new categories/policies plug in freely. |
 | **R7, R8, R8b** — home delivery with weight/distance charging and plan discounts | `DeliveryCalculator` **Strategy** computes the fee; the customer's `DiscountPlan` reduces/waives it. |
 | **R9** — live inventory and low-stock alerts | **Observer** pattern: `Inventory` notifies `StockObserver`s when a perishable item drops to/below its threshold. |
-| **R10** — 2-hour slots, anti-overbooking, dynamic pricing | `TimeSlot` + `DeliveryManager` track capacity per window and compute peak/eco price multipliers. |
+| **R10** — 2-hour slots, anti-overbooking, dynamic pricing | `TimeSlot` + `DeliveryManager` track capacity per window and compute peak/eco price multipliers; exposed via the CLUI commands `bookDeliverySlot` and `quoteDeliverySlot`. |
+| **§2.3** — customer has a unique numerical ID | `Customer` carries an auto-incremented `numericalId` assigned at registration, in addition to the login username. |
 | **Part 2** — CLUI with error handling | Three-class CLI layer with a quote-aware tokenizer, role-based permissions, and uniform error reporting that never crashes the interpreter. |
 
 ---
@@ -65,14 +66,16 @@ supermarket
 
 ## 4. Bill Computation
 
-`CashRegister.computeBill()` applies discounts in this order (spec §2.4):
+`CashRegister.computeBill()` applies pricing in this order (spec §2.4):
 
-1. **Per-item category policy** (R6): each item price is passed through its
+1. **Quantity-based unit price** (R3): each line uses `Item.unitPriceFor(qty)`,
+   applying any bulk discount once the quantity threshold is reached.
+2. **Per-item category policy** (R6): the unit price is passed through its
    `Category.pricingPolicy` (e.g. −10% on fruit-and-vegetables).
-2. **Customer discount plan** (R5): the resulting subtotal is passed through the
+3. **Customer discount plan** (R5): the resulting subtotal is passed through the
    customer's `DiscountPlan` (e.g. Prime −20% only if subtotal ≥ €50; Platinum
    −30% always).
-3. **Delivery fee** (R8/R8b): if a delivery was requested, the
+4. **Delivery fee** (R8/R8b): if a delivery was requested, the
    `DeliveryCalculator` computes the fee from total weight, distance and order
    value, then the plan's `applyDeliveryDiscount` reduces it (Prime 50%,
    Platinum free).
@@ -120,7 +123,7 @@ threshold.
 
 ## 6. Test Scenarios (mandatory description)
 
-Two scenario files are provided and run via `runTest <file>` in the CLUI.
+Three scenario files are provided and run via `runTest <file>` in the CLUI.
 
 ### `testScenario1.txt`
 End-to-end "happy path" exercising the core requirements:
@@ -128,24 +131,34 @@ End-to-end "happy path" exercising the core requirements:
 2. Category-level pricing policy: −10% on *fruit-and-vegetables* (R6).
 3. Customer subscribes to *prime* (R5) and requests home delivery (R7).
 4. Cashier opens a checkout with a mixed cart of all three mandatory categories (R2b).
-5. `computeBill` combines the category discount and the plan; delivery fee is
+5. Subscribing to prime **charges the €50 annual fee** immediately (R5).
+6. `computeBill` combines the category discount and the plan; delivery fee is
    halved by the prime plan (R8b). **Result: items €23.24 + delivery €7.50 = €30.74.**
    (Prime's 20% does *not* apply here because the subtotal is below €50 — correct per R5.)
-6. First payment fails (`INSUFFICIENT_FUNDS`), retry succeeds (R4).
-7. A second checkout buys 4 steaks (€50 → prime −20% = €40) and drives steak
+7. First payment fails (`INSUFFICIENT_FUNDS`), retry succeeds (R4).
+8. A second checkout buys 4 steaks (€50 → prime −20% = €40) and drives steak
    stock to 0, **firing the R9 low-stock alert** (Observer).
-8. Manager inspects `showInventory` (steak flagged `[LOW STOCK]`) and
-   `showRevenue` (**€70.74**).
+9. Manager inspects `showInventory` (steak flagged `[LOW STOCK]`) and
+   `showRevenue`: two sales €70.74 + the €50 prime fee = **€120.74**.
 
 ### `testScenario2.txt`
 Complementary scenario covering paths scenario 1 does not:
-1. **Platinum** plan: −30% on items and **free delivery** (R5, R8b).
+1. **Platinum** plan: −30% on items and **free delivery** (R5, R8b), with the
+   **€200 annual fee** charged on subscription.
 2. Category discount on *dairy* (−5%, R6).
 3. Payment unhappy paths forced via `simulatePayment`: **PIN_WRONG** then
    **AUTH_DENIED**, then a successful payment (R4).
 4. A low-stock alert on *beef* (R9) and its **clearing via `restock`**.
 5. **Home-delivery refusal for an order above 50 kg** (R8).
-   Final revenue: **€54.236**.
+   Final revenue: two sales €54.236 + the €200 platinum fee = **€254.236**.
+
+### `testScenario3.txt`
+Focused scenario for two features not exercised above:
+1. **Quantity-based pricing (R3):** a 25% bulk discount on *rice* that applies
+   only from 10 units (`setQuantityDiscount`); 10 units bill at €1.50 each = €15.
+2. **Smart logistics (R10):** booking a 2-hour slot up to its 2-vehicle capacity
+   (the third booking is **refused** — anti-overbooking), and **dynamic pricing**
+   quotes — peak ×1.5 (€22.50) and an "eco" nearby-truck discount ×0.8 (€12.00).
 
 ---
 
@@ -161,6 +174,7 @@ accepts commands. To run a scenario from inside the CLUI:
 ```
 runTest testScenario1.txt
 runTest testScenario2.txt
+runTest testScenario3.txt
 ```
 Type `help` to list all commands, `exit` to quit.
 
@@ -168,7 +182,7 @@ Type `help` to list all commands, `exit` to quit.
 ```bash
 mvn test
 ```
-**54 tests** cover the system. They are organised one test class per unit:
+**61 tests** cover the system. They are organised one test class per unit:
 
 | Test class | What it verifies |
 |------------|------------------|
@@ -178,8 +192,10 @@ mvn test
 | `DeliveryCalculatorTest` | Flat fee, flat+percentage, >50 kg refusal. |
 | `DeliveryManagerTest` | Anti-overbooking and peak/eco dynamic pricing. |
 | `DeliveryCheckoutTest` | End-to-end prime delivery fee (€7.50) on the scenario cart. |
-| `CliDispatcherTest` | Both scenarios end-to-end, quote-aware parsing, permission/syntax/misuse errors. |
-| `DiscountPlanTest`, `PricingPolicyTest`, `CartTest`, `BankCardTest`, `TimeSlotTest`, `PaymentSimulatorTest`, `TransactionAuthorisationSystemTest`, `SupermarketTest` | Focused unit tests per class. |
+| `CliDispatcherTest` | All three scenarios end-to-end, quote-aware parsing, permission/syntax/misuse errors, R10 slot commands. |
+| `DiscountPlanTest` | Plan discounts, delivery discounts, **annual fees**, factory. |
+| `ItemTest` | Quantity-based bulk pricing (R3). |
+| `PricingPolicyTest`, `CartTest`, `BankCardTest`, `TimeSlotTest`, `PaymentSimulatorTest`, `TransactionAuthorisationSystemTest`, `SupermarketTest` | Focused unit tests per class (incl. fee charging, numerical IDs, bulk discount). |
 
 Reproducing the tests is a single `mvn test`; the scenario files are read from
 the project root, so the JUnit scenario tests and the CLUI `runTest` execute the
@@ -203,9 +219,10 @@ exact same command sequences.
 **Limitations / possible improvements**
 - **Distance is a stub** (`DEFAULT_DISTANCE_KM = 10`): a real system would
   geocode the address. It is isolated so it can be replaced by a strategy.
-- **R10 logistics is a standalone module:** `TimeSlot`/`DeliveryManager` are
-  fully implemented and unit-tested but not yet exposed as dedicated CLUI
-  commands (the 20-command spec does not include slot booking).
+- **R10 slots are not yet bound to a specific checkout:** the `bookDeliverySlot`
+  /`quoteDeliverySlot` commands demonstrate capacity and dynamic pricing, but the
+  chosen slot is not (yet) attached to a customer's pending delivery — a natural
+  next step would be to fold the slot into `requestDelivery`.
 - **In-memory persistence:** state lives in memory for the duration of a run;
   there is no database.
 - **Single cash register:** the model assumes one active checkout at a time,

@@ -50,4 +50,11 @@ class DiscountPlanTest {
     void factoryRejectsUnknownPlan() {
         assertThrows(IllegalArgumentException.class, () -> DiscountPlanFactory.create("gold"));
     }
+
+    @Test
+    void annualFeesMatchTheSpecification() {
+        assertEquals(0.0, new NormalPlan().getAnnualFee(), 1e-9);
+        assertEquals(50.0, new PrimePlan().getAnnualFee(), 1e-9);
+        assertEquals(200.0, new PlatinumPlan().getAnnualFee(), 1e-9);
+    }
 }

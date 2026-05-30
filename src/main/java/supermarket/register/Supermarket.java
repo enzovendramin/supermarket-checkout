@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import supermarket.delivery.DeliveryCalculator;
+import supermarket.delivery.DeliveryManager;
 import supermarket.delivery.DeliveryRequest;
 import supermarket.delivery.StandardDeliveryCalculator;
 import supermarket.discount.DiscountPlan;
@@ -42,8 +43,12 @@ public class Supermarket {
     private final POSDevice pos = new POSDevice(tas);
     private final DeliveryCalculator deliveryCalculator = new StandardDeliveryCalculator();
     private final CashRegister cashRegister = new CashRegister(inventory, pos, deliveryCalculator);
+    /** Smart-logistics module (R10): 2 delivery vehicles per 2-hour slot. */
+    private final DeliveryManager deliveryManager = new DeliveryManager(2);
 
     private int cardCounter = 0;
+    private int customerCounter = 0;
+    private double subscriptionRevenue = 0.0;
 
     public Supermarket() {
         // R9: wire the Observer notifiers to the inventory.
@@ -116,6 +121,11 @@ public class Supermarket {
         inventory.restock(requireItem(itemName), quantity);
     }
 
+    /** Configures a quantity-based (bulk) discount on an item (R3). */
+    public void setQuantityDiscount(String itemName, int minQuantity, double percent) {
+        requireItem(itemName).setQuantityDiscount(minQuantity, percent);
+    }
+
     /** Applies a category-level pricing policy (R6). */
     public void setCategoryDiscount(String categoryName, double percent) {
         Category category = categories.get(categoryName);
@@ -134,6 +144,7 @@ public class Supermarket {
     public Customer registerCustomer(String firstName, String lastName, String username,
                                      String address, String password) {
         Customer customer = new Customer(firstName, lastName, username, address, password);
+        customer.setNumericalId(++customerCounter); // unique numerical ID (spec 2.3)
         // Each new customer gets an auto-generated, pre-funded test bank card.
         BankCard card = new BankCard(generateCardNumber(), "0000", 1_000.0);
         customer.setBankCard(card);
@@ -142,9 +153,23 @@ public class Supermarket {
         return customer;
     }
 
-    public void subscribeToPlan(Customer customer, String planName) {
+    /**
+     * Subscribes a customer to a plan and charges its annual fee immediately
+     * (spec 2.3): the fee is debited from the customer's bank card and added to
+     * the supermarket's revenue. Returns the fee charged.
+     */
+    public double subscribeToPlan(Customer customer, String planName) {
         DiscountPlan plan = DiscountPlanFactory.create(planName);
         customer.setDiscountPlan(plan);
+        double fee = plan.getAnnualFee();
+        if (fee > 0.0) {
+            BankCard card = customer.getBankCard();
+            if (card != null) {
+                card.debit(fee);
+            }
+            subscriptionRevenue += fee;
+        }
+        return fee;
     }
 
     public User getUser(String username) {
@@ -185,7 +210,9 @@ public class Supermarket {
     public Inventory getInventory() { return inventory; }
     public TransactionAuthorisationSystem getTas() { return tas; }
     public CashRegister getCashRegister() { return cashRegister; }
-    public double getRevenue() { return cashRegister.getTotalRevenue(); }
+    public DeliveryManager getDeliveryManager() { return deliveryManager; }
+    /** Total revenue since creation: checkout sales plus subscription fees. */
+    public double getRevenue() { return cashRegister.getTotalRevenue() + subscriptionRevenue; }
 
     private String generateCardNumber() {
         return String.format("%016d", ++cardCounter);

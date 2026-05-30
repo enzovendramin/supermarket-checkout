@@ -11,6 +11,7 @@ public class CartEntry {
 
     public Item getItem() { return item; }
     public int getQuantity() { return quantity; }
-    public double subtotal() { return item.getUnitPrice() * quantity; }
+    /** Line subtotal using the quantity-adjusted unit price (R3), before category/plan discounts. */
+    public double subtotal() { return item.unitPriceFor(quantity) * quantity; }
     public double totalWeightKg() { return item.getWeightKg() * quantity; }
 }

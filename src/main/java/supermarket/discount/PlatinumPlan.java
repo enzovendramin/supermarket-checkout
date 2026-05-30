@@ -13,4 +13,7 @@ public class PlatinumPlan implements DiscountPlan {
 
     @Override
     public String getName() { return "platinum"; }
+
+    @Override
+    public double getAnnualFee() { return 200.0; }
 }

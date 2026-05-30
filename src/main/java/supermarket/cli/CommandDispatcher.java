@@ -9,8 +9,11 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 
+import supermarket.delivery.DeliveryManager;
 import supermarket.delivery.DeliveryNotSupportedException;
 import supermarket.delivery.OverbookingException;
+import supermarket.delivery.StandardDeliveryCalculator;
+import supermarket.delivery.TimeSlot;
 import supermarket.inventory.Inventory;
 import supermarket.model.Customer;
 import supermarket.model.Item;
@@ -89,6 +92,7 @@ public class CommandDispatcher {
             case "addItem"             -> addItem(args);
             case "restock"             -> restock(args);
             case "setCategoryDiscount" -> setCategoryDiscount(args);
+            case "setQuantityDiscount" -> setQuantityDiscount(args);
             case "subscribeToPlan"     -> subscribeToPlan(args);
             case "startCheckout"       -> startCheckout(args);
             case "scanItem"            -> scanItem(args);
@@ -98,6 +102,8 @@ public class CommandDispatcher {
             case "simulatePayment"     -> simulatePayment(args);
             case "showInventory"       -> showInventory(args);
             case "showRevenue"         -> showRevenue(args);
+            case "bookDeliverySlot"    -> bookDeliverySlot(args);
+            case "quoteDeliverySlot"   -> quoteDeliverySlot(args);
             case "runTest"             -> runTest(args);
             case "help"                -> help(args);
             case "exit", "quit"        -> context.stop();
@@ -173,6 +179,15 @@ public class CommandDispatcher {
         out.printf(Locale.US, "Applied %.1f%% discount to category '%s'.%n", percent, args[0]);
     }
 
+    private void setQuantityDiscount(String[] args) {
+        requireArgs(args, 3, "setQuantityDiscount <itemName> <minQuantity> <discountPercent>");
+        context.requireRole("manager");
+        int minQty = parseInt(args[1], "minQuantity");
+        double percent = parseDouble(args[2], "discountPercent");
+        context.getMarket().setQuantityDiscount(args[0], minQty, percent);
+        out.printf(Locale.US, "Bulk discount on '%s': %.1f%% from %d units.%n", args[0], percent, minQty);
+    }
+
     private void showInventory(String[] args) {
         requireArgs(args, 0, "showInventory");
         context.requireRole("manager");
@@ -192,13 +207,43 @@ public class CommandDispatcher {
         out.printf(Locale.US, "Total revenue: €%.2f%n", context.getMarket().getRevenue());
     }
 
+    // ---- Smart logistics (R10) ----
+
+    private void bookDeliverySlot(String[] args) {
+        requireArgs(args, 1, "bookDeliverySlot <startHour>");
+        context.requireRole("manager");
+        TimeSlot slot = new TimeSlot(parseInt(args[0], "startHour"));
+        DeliveryManager manager = context.getMarket().getDeliveryManager();
+        manager.book(slot); // throws OverbookingException when the slot is full
+        out.printf("Booked a vehicle for slot %s (%d vehicle(s) left).%n",
+            slot.label(), manager.remainingCapacity(slot));
+    }
+
+    private void quoteDeliverySlot(String[] args) {
+        requireArgs(args, 2, "quoteDeliverySlot <startHour> <truckNearby:true|false>");
+        context.requireRole("manager");
+        TimeSlot slot = new TimeSlot(parseInt(args[0], "startHour"));
+        boolean nearby = Boolean.parseBoolean(args[1]);
+        DeliveryManager manager = context.getMarket().getDeliveryManager();
+        double base = StandardDeliveryCalculator.FLAT_FEE;
+        out.printf(Locale.US, "Slot %s%s%s: €%.2f base -> €%.2f (dynamic x%.2f).%n",
+            slot.label(),
+            slot.isPeak() ? " [peak]" : "",
+            nearby ? " [eco/truck nearby]" : "",
+            base, manager.quote(base, slot, nearby), manager.priceMultiplier(slot, nearby));
+    }
+
     // ---- Customer commands ----
 
     private void subscribeToPlan(String[] args) {
         requireArgs(args, 1, "subscribeToPlan <planName>");
         User user = context.requireRole("customer");
-        context.getMarket().subscribeToPlan((Customer) user, args[0]);
-        out.printf("Subscribed to the '%s' plan.%n", args[0]);
+        double fee = context.getMarket().subscribeToPlan((Customer) user, args[0]);
+        if (fee > 0.0) {
+            out.printf(Locale.US, "Subscribed to the '%s' plan (annual fee €%.2f charged).%n", args[0], fee);
+        } else {
+            out.printf("Subscribed to the '%s' plan (no fee).%n", args[0]);
+        }
     }
 
     private void requestDelivery(String[] args) {
@@ -292,8 +337,11 @@ public class CommandDispatcher {
         out.println("  addItem <name> <category> <unitPrice> <weight> <stock>    (manager)");
         out.println("  restock <itemName> <quantity>                            (manager)");
         out.println("  setCategoryDiscount <categoryName> <percent>             (manager)");
+        out.println("  setQuantityDiscount <itemName> <minQty> <percent>        (manager, R3)");
         out.println("  showInventory                                            (manager)");
         out.println("  showRevenue                                              (manager)");
+        out.println("  bookDeliverySlot <startHour>                             (manager, R10)");
+        out.println("  quoteDeliverySlot <startHour> <truckNearby>              (manager, R10)");
         out.println("  subscribeToPlan <planName>                               (customer)");
         out.println("  requestDelivery <address>                                (customer)");
         out.println("  startCheckout <customerUsername>                         (cashier)");

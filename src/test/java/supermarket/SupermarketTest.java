@@ -61,6 +61,40 @@ class SupermarketTest {
     }
 
     @Test
+    void subscribingChargesTheAnnualFeeToRevenueAndCard() {
+        Supermarket market = new Supermarket();
+        Customer dora = market.registerCustomer("Dora", "Diaz", "dora", "addr", "pwd");
+        double cardBefore = dora.getBankCard().getBalance();
+
+        double fee = market.subscribeToPlan(dora, "platinum");
+
+        assertEquals(200.0, fee, 1e-9);
+        assertEquals(200.0, market.getRevenue(), 1e-9);                 // counted as revenue
+        assertEquals(cardBefore - 200.0, dora.getBankCard().getBalance(), 1e-9); // debited
+    }
+
+    @Test
+    void customersReceiveUniqueNumericalIds() {
+        Supermarket market = new Supermarket();
+        Customer a = market.registerCustomer("A", "A", "a", "addr", "pwd");
+        Customer b = market.registerCustomer("B", "B", "b", "addr", "pwd");
+        assertEquals(a.getNumericalId() + 1, b.getNumericalId());
+    }
+
+    @Test
+    void quantityDiscountReducesTheBill() {
+        Supermarket market = new Supermarket();
+        market.addItem("rice", "grocery", 2.00, 1.00, 100);
+        market.setQuantityDiscount("rice", 10, 25); // -25% from 10 units (R3)
+        Customer eve = market.registerCustomer("Eve", "Stone", "eve", "addr", "pwd");
+
+        market.getCashRegister().startCheckout(eve);
+        market.getCashRegister().scanItem(market.getItem("rice"), 10);
+        // 10 units -> €1.50 each -> €15.00 (no plan/category discount).
+        assertEquals(15.0, market.getCashRegister().computeBill().getSubtotalAfterDiscount(), 1e-9);
+    }
+
+    @Test
     void setupIsIdempotent() {
         Supermarket market = new Supermarket();
         market.setup();

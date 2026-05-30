@@ -77,8 +77,9 @@ public class CashRegister {
         for (CartEntry entry : cart.getEntries()) {
             Item item = entry.getItem();
             int qty = entry.getQuantity();
-            rawTotal += item.getUnitPrice() * qty;
-            afterCategory += item.getCategory().getPricingPolicy().apply(item.getUnitPrice()) * qty;
+            double unitPrice = item.unitPriceFor(qty); // R3: price may depend on quantity
+            rawTotal += unitPrice * qty;
+            afterCategory += item.getCategory().getPricingPolicy().apply(unitPrice) * qty;
         }
 
         double afterPlan = plan.applyDiscount(afterCategory);

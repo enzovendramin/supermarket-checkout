@@ -13,4 +13,7 @@ public class PrimePlan implements DiscountPlan {
 
     @Override
     public String getName() { return "prime"; }
+
+    @Override
+    public double getAnnualFee() { return 50.0; }
 }
