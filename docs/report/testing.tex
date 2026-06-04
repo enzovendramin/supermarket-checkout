@@ -7,10 +7,14 @@ and by end-to-end scenarios executed through the CLUI.
 
 \section{JUnit Test Strategy}
 The suite follows the instruction to provide tests for the most significant
-methods of each class, excluding trivial getters and setters. It is organised as
+methods of each class, excluding trivial getters and setters. The project
+statement supplies no JUnit tests of its own --- only the format of the
+command-line test scenarios --- so every test class in the suite was written
+specifically for this project. It is organised as
 one test class per unit, mirroring the source packages: bill computation
 (\code{BillComputationTest}), the payment flow and the bank authorisation
-(\code{PaymentFlowTest}, \code{TransactionAuthorisationSystemTest}), the
+(\code{PaymentFlowTest},
+\code{Transaction}\allowbreak\code{Authorisation}\allowbreak\code{System}\allowbreak\code{Test}), the
 inventory and its Observer (\code{InventoryObserverTest}), the delivery charging
 and logistics (\code{DeliveryCalculatorTest}, \code{DeliveryManagerTest},
 \code{TimeSlotTest}), the discount plans and pricing policies

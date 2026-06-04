@@ -1,33 +1,68 @@
 \chapter{Design Analysis and Conclusion}
 \label{ch:conclusion}
 
-\textit{[Skeleton --- to be written.]}
-
 \section{Advantages of the Solution}
-\textit{Extensibility (Open/Closed), separation of concerns, reproducible
-output, two independent UIs over one core.}
-
-\section{Limitations and Future Work}
-\textit{Distance stub, slots not bound to a checkout, in-memory state; possible
-next steps (persistence, REST API, point redemption).}
+The implementation satisfies every requirement of the specification, but its
+main quality lies in how well it accommodates change. Three properties stand
+out. First, the design is \emph{open to extension and closed to modification}:
+thanks to the Strategy and Factory patterns, a new discount plan, pricing
+policy, delivery scheme or promotion is introduced as a new class, with no edit
+to the checkout logic. The four extensions of Part~\ref{part:extensions} were
+added in exactly this way, without altering the specified behaviour. Second, the
+strict \emph{separation of concerns} --- domain entities, services,
+orchestration and user interface in distinct layers --- keeps the business logic
+independent of the way it is driven; the clearest evidence is that a complete
+JavaFX interface could be built over the same core without changing a single
+domain class. Third, the system produces \emph{reproducible output}: a fixed
+locale makes every monetary figure deterministic, and the CLUI scenario files
+double as JUnit fixtures, so each result quoted in this report is checked
+automatically.
 
 \section{Workload Split}
-This is an individual project; all design, code, UML and tests were produced by
-the single author.
+This is an individual project: every design decision, line of code, UML diagram
+and test was produced by the single author, as summarised in
+Table~\ref{tab:workload}.
 
 \begin{table}[H]
 \centering
+\small
 \begin{tabularx}{\linewidth}{Y c c c c}
 \toprule
 \textbf{Module / Task} & \textbf{Design} & \textbf{Code} & \textbf{UML} & \textbf{Tests} \\
 \midrule
-\textit{All modules (placeholder list)} & \checkmark & \checkmark & \checkmark & \checkmark \\
+Domain model and users & \checkmark & \checkmark & \checkmark & \checkmark \\
+Discount plans and pricing policies & \checkmark & \checkmark & \checkmark & \checkmark \\
+Inventory and stock alerts (Observer) & \checkmark & \checkmark & \checkmark & \checkmark \\
+Payment (POS and bank authorisation) & \checkmark & \checkmark & \checkmark & \checkmark \\
+Delivery and smart logistics & \checkmark & \checkmark & \checkmark & \checkmark \\
+Orchestration (\code{Supermarket}, \code{CashRegister}) & \checkmark & \checkmark & \checkmark & \checkmark \\
+Command-line interface & \checkmark & \checkmark & \checkmark & \checkmark \\
+Extensions (Command, promotions, VAT, loyalty) & \checkmark & \checkmark & \checkmark & \checkmark \\
+JavaFX graphical interface & \checkmark & \checkmark & \checkmark & \checkmark \\
 \bottomrule
 \end{tabularx}
 \caption{Workload split (Enzo Jardim Vendramin).}
 \label{tab:workload}
 \end{table}
 
+While developing the project I also made occasional use of artificial-intelligence
+assistance, which I regard as part of the learning process: before this course I
+had never written a line of Java, nor used object-oriented programming at all.
+The lectures gave me the foundations, and this project pushed me well beyond
+them. I genuinely enjoyed the content, the challenge of solving each problem,
+and the opportunity to apply it to a concrete, everyday setting such as a
+supermarket checkout.
+
 \section{Conclusion}
-\textit{Closing paragraph on how the project meets the requirements and what the
-design demonstrates.}
+The project delivers a complete supermarket checkout system that meets the full
+specification --- the bought-items model, quantity-based and category pricing,
+extensible discount plans, bank-card payment, weight-and-distance delivery, the
+Observer-based inventory and the smart-logistics slots --- all driven through a
+command-line interface and validated by an automated test suite
+(Part~\ref{part:specified}). On top of this verified baseline, Part~\ref{part:extensions}
+shows that the same design readily supports features that were never asked for:
+reversible actions, a promotions engine, per-category VAT, a loyalty programme
+and an entire second user interface. The exercise therefore meets its twofold
+objective: it implements what the specification requires, and it does so with a
+pattern-driven, layered design whose value is demonstrated --- rather than merely
+claimed --- by how easily it grew.

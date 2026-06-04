@@ -13,15 +13,13 @@ it brings together several collaborating components --- the \emph{cash register}
 (which records the bought items and computes the total bill), the
 \emph{customer} (who may adhere to a discount plan and request home delivery),
 and the \emph{bank payment system} (which authorises the card transaction). Each
-component has clear responsibilities and well-defined interactions, and several
-of them are explicitly required to be \emph{extensible}.
+component has clear responsibilities and well-defined interactions.
 
 The objective of this work is therefore twofold: to implement the full set of
 functional requirements, and to do so with a clean, pattern-driven design that
-remains open to extension. Because the project is graded on design quality, the
-use of design patterns, the JUnit test suite and the UML models, this report
-emphasises \emph{why} the code is structured the way it is, and shows
-explicitly that every required feature has been implemented and tested.
+remains open to extension. This report emphasises \emph{why} the code is
+structured the way it is, and shows explicitly that every required feature has
+been implemented and tested.
 
 \section{Scope and Deliverables}
 The deliverables associated with this project are:
@@ -44,8 +42,8 @@ Part~\ref{part:extensions}.
 The report is organised in two parts. \textbf{Part~\ref{part:specified}} covers
 the \emph{specified system}: it recalls the requirements and the design
 decisions they induced (Chapter~\ref{ch:requirements}), presents the
-architecture and the design patterns (Chapter~\ref{ch:architecture}), gives the
-UML models (Chapter~\ref{ch:uml}) and describes the testing
+architecture, the design patterns and the UML models
+(Chapter~\ref{ch:architecture}) and describes the testing
 (Chapter~\ref{ch:testing}). \textbf{Part~\ref{part:extensions}} is dedicated to
 the optional extensions built on top of the specified baseline. The report ends
 with a design analysis and conclusion, followed by appendices containing the

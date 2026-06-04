@@ -1,12 +1,17 @@
-\chapter{Extensions Beyond the Specification}
+\chapter{The Optional Extensions}
 \label{ch:extensions}
 
-This part presents the features added \emph{on top of} the specified system.
-They are built on the specification baseline (tagged \code{v1.0}) and are
-deliberately \emph{additive}: every extension defaults to a no-op, so the
-required behaviour --- and the figures of Part~\ref{part:specified} --- are
-unchanged when no promotion, tax or loyalty rule is configured. The two runnable
-versions (specified-only and final) are described in the README and
+Part~\ref{part:specified} --- the \emph{specified system} --- corresponds
+exactly to what the project statement asked for: requirements R1--R10, the
+command-line interface and the mandatory tests, and nothing more.
+\textbf{This part goes beyond that brief.} None of the features described below
+were requested by the assignment; they were added on my own initiative, to push
+the design further and to show that it is genuinely open to extension. They are
+built on the specification baseline (tagged \code{v1.0}) and are deliberately
+\emph{additive}: every extension defaults to a no-op, so the required
+behaviour --- and the figures of Part~\ref{part:specified} --- are unchanged when
+no promotion, tax or loyalty rule is configured. The two runnable versions
+(specified-only and final) are described in the README and
 Appendix~\ref{app:build}. Figure~\ref{fig:class-extensions} shows the classes
 introduced here and how they plug into \code{CashRegister}.
 
@@ -83,6 +88,16 @@ outcome), and displays the revenue and the customer's loyalty points. The
 inventory table highlights low-stock rows in real time through a \emph{new}
 \code{StockObserver} registered on the existing \code{Inventory} --- a direct,
 visual demonstration of the Observer pattern of R9. The interface is launched with
-\code{mvn javafx:run}.
+\code{mvn javafx:run}. Figure~\ref{fig:gui} shows the running application after a
+sale: the out-of-stock \emph{steak} row is highlighted in red by the
+\code{StockObserver}, and the events panel records the scans, the approved
+payment and the loyalty points earned.
 
-\textit{[A screenshot of the running GUI can be inserted here.]}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{gui-screenshot.png}
+    \caption{The JavaFX desktop interface --- a second presentation layer over
+    the same \code{Supermarket} core used by the CLUI, demonstrating the Observer
+    low-stock highlight (R9) and the loyalty points.}
+    \label{fig:gui}
+\end{figure}

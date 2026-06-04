@@ -1,8 +1,9 @@
-\chapter{Architecture and Design Patterns}
+\chapter{Architecture, Design Patterns and UML Models}
 \label{ch:architecture}
 
-This chapter describes how the specified system is structured and which design
-patterns realise its requirements.
+This chapter describes how the specified system is structured, which design
+patterns realise its requirements, and how the result is documented with UML
+models.
 
 \section{Package Architecture}
 The code is organised in layers, each in its own package, so that dependencies
@@ -36,7 +37,8 @@ introduced to solve a specific requirement.
 
 \begin{table}[H]
 \centering
-\begin{tabularx}{\linewidth}{p{2.1cm} p{3.4cm} Y}
+\small
+\begin{tabularx}{\linewidth}{p{1.9cm} >{\raggedright\arraybackslash}p{3.7cm} Y}
 \toprule
 \textbf{Pattern} & \textbf{Where} & \textbf{Problem it solves} \\
 \midrule
@@ -45,14 +47,14 @@ behaviour per customer without conditionals; new plans need no change to the
 checkout (R5b). \\
 Strategy & \code{PricingPolicy} per \code{Category} & Per-category pricing that
 can be changed or added at runtime (R6b). \\
-Strategy & \code{DeliveryCalculator} & The delivery charging scheme can be
+Strategy & \code{Delivery}\allowbreak\code{Calculator} & The delivery charging scheme can be
 replaced without touching the bill logic (R8). \\
-Factory & \code{DiscountPlanFactory} & Creates a plan from its name (used by
+Factory & \code{DiscountPlan}\allowbreak\code{Factory} & Creates a plan from its name (used by
 \code{subscribeToPlan}), isolating the system from the concrete plan classes. \\
 Observer & \code{Inventory} $\rightarrow$ \code{StockObserver} & Decouples stock
 bookkeeping from whoever reacts to a shortage; new listeners subscribe freely
 (R9). \\
-Facade & \code{TransactionAuthorisationSystem} & Hides the banking authorisation
+Facade & \code{Transaction}\allowbreak\code{Authorisation}\allowbreak\code{System} & Hides the banking authorisation
 protocol behind a single \code{authorise(card, amount)} operation (R4). \\
 \bottomrule
 \end{tabularx}

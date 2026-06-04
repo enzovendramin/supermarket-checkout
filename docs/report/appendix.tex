@@ -1,20 +1,38 @@
 \chapter{How to Build and Run}
 \label{app:build}
 
-\textit{[Skeleton.] Requires JDK 17+ (developed on JDK 21) and Maven 3.9+.}
+The project is built with Maven and requires a Java Development Kit version~17
+or later (it was developed on JDK~21) together with Maven~3.9 or later. The
+repository offers two runnable versions of the same code base: the
+\emph{specification version}, tagged \code{v1.0}, which contains exactly what the
+instructions require, and the \emph{final version} on the \code{master} branch,
+which also includes the extensions of Part~\ref{part:extensions} and the
+graphical interface. Selecting a version is simply a matter of checking out the
+corresponding tag or branch before building, as shown in Listing~\ref{lst:run}.
 
 \begin{lstlisting}[language=bash, caption={Build, test and run commands.}, label={lst:run}]
-mvn test            # compile + run all JUnit tests
-mvn exec:java -Dexec.mainClass="supermarket.cli.CLI"   # launch the CLUI
-mvn javafx:run      # launch the JavaFX desktop GUI
+# --- choose the version to run -------------------------------------------
+git checkout v1.0      # specification-only version (R1-R10, CLUI, tests)
+git checkout master    # final version (adds the optional extensions + GUI)
+
+# --- build, test and run -------------------------------------------------
+mvn test               # compile and run the whole JUnit suite
+mvn exec:java          # launch the command-line interface (CLUI)
+mvn javafx:run         # launch the JavaFX desktop GUI (final version only)
 \end{lstlisting}
 
+Inside the CLUI, a complete end-to-end scenario is replayed with, for example,
+\code{runTest testScenario1.txt}. The same scenario files are executed
+automatically by \code{CliDispatcherTest}, so the interactive session and the
+test suite exercise identical command sequences.
+
+\nopagebreakchapter
 \chapter{Complete Class Diagram}
 \label{app:fullclass}
 
 For completeness, the full class diagram of the whole system (specified core and
 extensions) is reproduced below in landscape. The per-package views in
-Chapter~\ref{ch:uml} are the legible decomposition of this diagram.
+Section~\ref{sec:class-diagram} are the legible decomposition of this diagram.
 
 \begin{landscape}
 \begin{figure}[H]
@@ -28,14 +46,53 @@ Chapter~\ref{ch:uml} are the legible decomposition of this diagram.
 \chapter{Selected Code Listings}
 \label{app:code}
 
-\textit{[Skeleton] Representative excerpts will be included here, e.g. the
-discount-plan Strategy interface.}
+The following excerpts illustrate the central design choice of the specified
+system: a discount plan is a \textbf{Strategy} (Listing~\ref{lst:plan}) with
+interchangeable concrete implementations (Listing~\ref{lst:prime}), instantiated
+from its name by a \textbf{Factory} (Listing~\ref{lst:factory}). Introducing a
+new plan therefore means writing one new class and adding a single line to the
+factory, with no change to the checkout logic.
 
 \begin{lstlisting}[language=Java, caption={The \code{DiscountPlan} strategy interface.}, label={lst:plan}]
 public interface DiscountPlan {
     double applyDiscount(double subtotal);
     double applyDeliveryDiscount(double deliveryCost);
-    double getAnnualFee();
     String getName();
+
+    /** Annual fee charged immediately when a customer subscribes (spec 2.3). */
+    double getAnnualFee();
+}
+\end{lstlisting}
+
+\begin{lstlisting}[language=Java, caption={A concrete strategy: the \code{PrimePlan}.}, label={lst:prime}]
+public class PrimePlan implements DiscountPlan {
+    @Override
+    public double applyDiscount(double subtotal) {
+        return subtotal >= 50.0 ? subtotal * 0.80 : subtotal;
+    }
+
+    @Override
+    public double applyDeliveryDiscount(double deliveryCost) {
+        return deliveryCost * 0.50;
+    }
+
+    @Override
+    public String getName() { return "prime"; }
+
+    @Override
+    public double getAnnualFee() { return 50.0; }
+}
+\end{lstlisting}
+
+\begin{lstlisting}[language=Java, caption={The \code{DiscountPlanFactory}: a plan name becomes the right object.}, label={lst:factory}]
+public class DiscountPlanFactory {
+    public static DiscountPlan create(String name) {
+        return switch (name.toLowerCase()) {
+            case "normal"   -> new NormalPlan();
+            case "prime"    -> new PrimePlan();
+            case "platinum" -> new PlatinumPlan();
+            default -> throw new IllegalArgumentException("Unknown plan: " + name);
+        };
+    }
 }
 \end{lstlisting}
