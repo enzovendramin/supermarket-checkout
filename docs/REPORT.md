@@ -27,8 +27,12 @@ supermarket
 ├── inventory   Inventory + StockObserver + Manager/Supplier notifiers (Observer)
 ├── payment     POSDevice, TransactionAuthorisationSystem, PaymentSimulator, PaymentResult
 ├── delivery    DeliveryCalculator strategy + DeliveryRequest, TimeSlot, DeliveryManager
+├── promotion   Promotion strategy + BuyNGetMFree, Coupon, PromotionEngine  (extension)
+├── command     Command + ScanItemCommand + CommandHistory (undo/redo)       (extension)
+├── loyalty     LoyaltyProgram                                               (extension)
 ├── register    CashRegister (checkout orchestration) + Supermarket (system core)
-└── cli         CLI, CommandContext, CommandDispatcher (the CLUI)
+├── cli         CLI, CommandContext, CommandDispatcher (the CLUI)
+└── gui         CheckoutApp + DemoData (JavaFX desktop UI)                    (extension)
 ```
 
 ---
@@ -183,7 +187,16 @@ Demonstrates the beyond-spec extensions:
 mvn compile
 mvn exec:java -Dexec.mainClass="supermarket.cli.CLI"
 ```
-At startup the system auto-loads `my_supermarket.ini` (the standard setup), then
+
+### Run the graphical interface (JavaFX)
+```bash
+mvn javafx:run
+```
+Opens a desktop checkout window over the **same domain core**: a catalogue,
+a live cart and bill, `undo`/`redo` buttons (Command pattern), payment with a
+simulated outcome, and a low-stock highlight driven by a `StockObserver` (R9).
+
+At startup the CLUI auto-loads `my_supermarket.ini` (the standard setup), then
 accepts commands. To run a scenario from inside the CLUI:
 ```
 runTest testScenario1.txt
@@ -260,10 +273,13 @@ add depth without altering the required behaviour (all default to no-op):
 | **Store promotions** | **Strategy**: `Promotion` (buy-N-get-M, % coupon) aggregated by `PromotionEngine` | `promotion/`, CLUI `addBogoPromotion`/`addCoupon` |
 | **Per-category VAT** | tax rate on `Category`, applied to net line prices in the bill | `model/Category`, CLUI `setCategoryTax` |
 | **Loyalty points** | `LoyaltyProgram` awards points per euro spent on payment | `loyalty/`, CLUI `showPoints` |
+| **JavaFX GUI** | a second presentation layer over the same `Supermarket` core, with a live low-stock highlight via a new `StockObserver` | `gui/` (`CheckoutApp`, `DemoData`), run with `mvn javafx:run` |
 
 These are exercised end-to-end by `testScenario4.txt` and covered by
-`CommandUndoRedoTest`, `PromotionEngineTest`, `LoyaltyProgramTest` and
-`BillExtrasTest`.
+`CommandUndoRedoTest`, `PromotionEngineTest`, `LoyaltyProgramTest`,
+`BillExtrasTest` and `GuiDomainFlowTest`. The GUI demonstrates a key design
+strength: the domain is UI-agnostic, so adding a graphical front-end required
+**no change to the domain** — only a new consumer of the `Supermarket` API.
 
 ---
 
