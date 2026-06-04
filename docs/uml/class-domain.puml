@@ -1,0 +1,58 @@
+@startuml class-domain
+title Domain model
+hide empty members
+skinparam classAttributeIconSize 0
+
+abstract class User {
+  - username : String
+  - password : String
+  - role : String
+  + checkPassword(p) : boolean
+}
+class Manager
+class Cashier
+class Customer {
+  - address : String
+  - numericalId : int
+  - loyaltyPoints : int
+}
+User <|-- Manager
+User <|-- Cashier
+User <|-- Customer
+
+class Item {
+  - name : String
+  - unitPrice : double
+  - weightKg : double
+  + unitPriceFor(qty) : double
+}
+class Category {
+  - name : String
+  - vatRate : double
+}
+class Cart {
+  + rawTotal() : double
+  + totalWeightKg() : double
+}
+class CartEntry {
+  - quantity : int
+  + subtotal() : double
+}
+class BankCard {
+  - number : String
+  - pin : String
+  - balance : double
+  + pinMatches(p) : boolean
+}
+class Receipt
+
+interface DiscountPlan
+interface PricingPolicy
+
+Customer --> "1" BankCard
+Customer --> "1" DiscountPlan : plan
+Item --> "1" Category
+Category --> "1" PricingPolicy : policy
+Cart "1" o--> "*" CartEntry
+CartEntry --> "1" Item
+@enduml

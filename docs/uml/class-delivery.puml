@@ -1,0 +1,25 @@
+@startuml class-delivery
+title Delivery charging and smart logistics
+hide empty members
+skinparam classAttributeIconSize 0
+
+interface DeliveryCalculator {
+  + computeFee(weight, distance, total) : double
+}
+class StandardDeliveryCalculator
+class DeliveryRequest {
+  - address : String
+  - distanceKm : double
+}
+class TimeSlot {
+  - startHour : int
+  + isPeak() : boolean
+}
+class DeliveryManager {
+  - vehicleCapacityPerSlot : int
+  + book(slot)
+  + quote(baseFee, slot, nearby) : double
+}
+DeliveryCalculator <|.. StandardDeliveryCalculator
+DeliveryManager "1" o--> "*" TimeSlot : bookings
+@enduml

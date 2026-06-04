@@ -1,0 +1,56 @@
+@startuml class-orchestration
+title Orchestration and user interfaces
+hide empty members
+skinparam classAttributeIconSize 0
+
+class Supermarket {
+  + setup()
+  + addItem(...)
+  + registerCustomer(...)
+  + openCheckout(user)
+  + getCashRegister()
+}
+class CashRegister {
+  + startCheckout(customer, delivery)
+  + scanItem(item, qty)
+  + computeBill() : Receipt
+  + pay(cardNumber, pin) : PaymentResult
+}
+
+class Inventory
+class POSDevice
+class DeliveryCalculator
+class PromotionEngine
+class DeliveryManager
+
+package cli {
+  class CLI
+  class CommandContext {
+    - currentUser
+    + requireRole(role)
+  }
+  class CommandDispatcher {
+    + execute(line)
+  }
+}
+package gui {
+  class CheckoutApp
+  class DemoData
+}
+
+Supermarket --> "1" CashRegister
+Supermarket --> "1" Inventory
+Supermarket --> "1" POSDevice
+Supermarket --> "1" DeliveryCalculator
+Supermarket --> "1" PromotionEngine
+Supermarket --> "1" DeliveryManager
+CashRegister --> "1" Inventory
+CashRegister --> "1" POSDevice
+
+CLI --> CommandDispatcher
+CLI --> CommandContext
+CommandDispatcher --> CommandContext
+CommandContext --> Supermarket
+CheckoutApp --> Supermarket
+CheckoutApp ..> DemoData
+@enduml

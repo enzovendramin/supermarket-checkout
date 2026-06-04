@@ -1,0 +1,30 @@
+@startuml class-payment
+title Payment: POS and bank authorisation (Facade)
+hide empty members
+skinparam classAttributeIconSize 0
+
+enum PaymentResult {
+  SUCCESS
+  INSUFFICIENT_FUNDS
+  PIN_WRONG
+  AUTH_DENIED
+}
+class POSDevice {
+  + pay(cardNumber, pin, amount) : PaymentResult
+  + simulateNextPayment(outcome)
+}
+class TransactionAuthorisationSystem {
+  + registerCard(c)
+  + authorise(cardNumber, amount) : PaymentResult
+}
+class PaymentSimulator {
+  + force(outcome)
+  + consume() : Optional<PaymentResult>
+}
+class BankCard
+
+POSDevice --> "1" TransactionAuthorisationSystem
+POSDevice --> "1" PaymentSimulator
+TransactionAuthorisationSystem ..> BankCard
+TransactionAuthorisationSystem ..> PaymentResult
+@enduml

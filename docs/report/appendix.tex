@@ -1,0 +1,41 @@
+\chapter{How to Build and Run}
+\label{app:build}
+
+\textit{[Skeleton.] Requires JDK 17+ (developed on JDK 21) and Maven 3.9+.}
+
+\begin{lstlisting}[language=bash, caption={Build, test and run commands.}, label={lst:run}]
+mvn test            # compile + run all JUnit tests
+mvn exec:java -Dexec.mainClass="supermarket.cli.CLI"   # launch the CLUI
+mvn javafx:run      # launch the JavaFX desktop GUI
+\end{lstlisting}
+
+\chapter{Complete Class Diagram}
+\label{app:fullclass}
+
+For completeness, the full class diagram of the whole system (specified core and
+extensions) is reproduced below in landscape. The per-package views in
+Chapter~\ref{ch:uml} are the legible decomposition of this diagram.
+
+\begin{landscape}
+\begin{figure}[H]
+    \centering
+    \includegraphics[height=0.92\textheight]{class-diagram.png}
+    \caption{Complete class diagram (all packages).}
+    \label{fig:fullclass}
+\end{figure}
+\end{landscape}
+
+\chapter{Selected Code Listings}
+\label{app:code}
+
+\textit{[Skeleton] Representative excerpts will be included here, e.g. the
+discount-plan Strategy interface.}
+
+\begin{lstlisting}[language=Java, caption={The \code{DiscountPlan} strategy interface.}, label={lst:plan}]
+public interface DiscountPlan {
+    double applyDiscount(double subtotal);
+    double applyDeliveryDiscount(double deliveryCost);
+    double getAnnualFee();
+    String getName();
+}
+\end{lstlisting}

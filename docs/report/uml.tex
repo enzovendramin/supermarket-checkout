@@ -1,0 +1,80 @@
+\chapter{UML Diagrams}
+\label{ch:uml}
+
+This chapter presents the UML models of the specified system. Because the full
+class diagram is large, it is shown here as focused per-package views (each
+legible on its own); the complete class diagram is provided in
+Appendix~\ref{app:fullclass}. The extension classes are shown separately in
+Part~\ref{part:extensions}.
+
+\section{Class Diagram (per package)}
+\label{sec:class-diagram}
+\textit{[Commentary to be written.]}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\linewidth]{class-domain.png}
+    \caption{Domain model: entities, the user hierarchy and their relationships.}
+    \label{fig:class-domain}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\linewidth]{class-discount-pricing.png}
+    \caption{Discount plans and pricing policies (Strategy + Factory).}
+    \label{fig:class-discount}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \subfloat[Inventory and alerts (Observer).]{\includegraphics[width=0.46\linewidth]{class-inventory.png}}
+    \hfill
+    \subfloat[Payment (Facade).]{\includegraphics[width=0.46\linewidth]{class-payment.png}}
+    \caption{Inventory/Observer (left) and Payment/Facade (right).}
+    \label{fig:class-inv-pay}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{class-delivery.png}
+    \caption{Delivery charging (Strategy) and smart-logistics classes.}
+    \label{fig:class-delivery}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\linewidth]{class-orchestration.png}
+    \caption{Orchestration core (\code{Supermarket}, \code{CashRegister}) and the
+    two user interfaces.}
+    \label{fig:class-orchestration}
+\end{figure}
+
+\section{Use-Case Diagram}
+\label{sec:use-case}
+\textit{[Commentary to be written.]}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{use-case-diagram.png}
+    \caption{Use cases for the Manager, Cashier, Customer and the Bank (TAS).}
+    \label{fig:use-case}
+\end{figure}
+
+\section{Sequence Diagrams}
+\label{sec:sequence}
+\textit{[Commentary to be written.]}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{sequence-checkout-payment.png}
+    \caption{Checkout and payment flow, including the forced/real payment branch
+    and the post-success inventory decrement.}
+    \label{fig:seq-checkout}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.65\linewidth]{sequence-low-stock-alert.png}
+    \caption{Low-stock alert via the Observer pattern (R9).}
+    \label{fig:seq-lowstock}
+\end{figure}

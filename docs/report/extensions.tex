@@ -1,0 +1,31 @@
+\chapter{Extensions Beyond the Specification}
+\label{ch:extensions}
+
+\textit{[Skeleton --- to be written.] Built on the specified baseline (tagged
+\code{v1.0}); all extensions default to no-op so the required behaviour is
+unchanged. The two runnable versions of the project (specified-only and final)
+are described in the README and Appendix~\ref{app:build}.}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{class-extensions.png}
+    \caption{Class diagram of the extensions: Command (undo/redo), Promotions
+    (Strategy) and Loyalty, plugged into \code{CashRegister}.}
+    \label{fig:class-extensions}
+\end{figure}
+
+\section{Undo/Redo (Command Pattern)}
+\textit{Reversible scan commands with a command history.}
+
+\section{Promotions Engine (Strategy)}
+\textit{Buy-N-get-M offers and percentage coupons aggregated for the bill.}
+
+\section{Per-Category VAT}
+\textit{Tax rate on each category, applied to net line prices.}
+
+\section{Loyalty Points}
+\textit{Points earned per euro spent on payment.}
+
+\section{JavaFX Graphical Interface}
+\textit{A second presentation layer over the same domain core, with a live
+low-stock highlight fed by a new \code{StockObserver}. Insert a screenshot here.}

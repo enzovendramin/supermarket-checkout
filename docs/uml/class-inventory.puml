@@ -1,0 +1,24 @@
+@startuml class-inventory
+title Inventory and low-stock alerts (Observer)
+hide empty members
+skinparam classAttributeIconSize 0
+
+interface StockObserver {
+  + onLowStock(item, current, threshold)
+}
+class Inventory {
+  + addItem(item, stock)
+  + restock(item, qty)
+  + decrement(item, qty)
+  + isLow(item) : boolean
+  + addObserver(o)
+}
+class ManagerNotifier
+class SupplierNotifier
+class Item
+
+StockObserver <|.. ManagerNotifier
+StockObserver <|.. SupplierNotifier
+Inventory "1" o--> "*" StockObserver : notifies
+Inventory ..> Item
+@enduml

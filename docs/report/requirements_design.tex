@@ -1,0 +1,50 @@
+\chapter{Requirements and Design Decisions}
+\label{ch:requirements}
+
+\textit{[Skeleton --- prose to be written.]}
+
+\section{Functional Requirements}
+\textit{Short recap of the core requirements (R1--R10), the mandatory CLUI and
+the mandatory tests.}
+
+\section{Requirements Traceability}
+\label{sec:traceability}
+Table~\ref{tab:traceability} shows that every element required by the project
+instructions is implemented and tested. It maps each requirement to the classes
+that realise it and to the JUnit tests (or scenario) that validate it.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\linewidth}{p{1.6cm} Y Y}
+\toprule
+\textbf{Req.} & \textbf{Implemented in} & \textbf{Validated by} \\
+\midrule
+R1, R2, R2b & \code{Cart}, \code{CartEntry}, \code{Item}, \code{Category}; \code{Supermarket.setup} & \code{CliDispatcherTest}, \code{BillComputationTest} \\
+R3 & \code{Item.unitPriceFor} (quantity-based price) & \code{ItemTest} \\
+R4 & \code{POSDevice}, \code{TransactionAuthorisationSystem}, \code{BankCard} & \code{PaymentFlowTest}, \code{TransactionAuthorisationSystemTest} \\
+R5 & \code{DiscountPlan} + Normal/Prime/Platinum & \code{DiscountPlanTest}, \code{BillComputationTest} \\
+R5b & \code{DiscountPlanFactory}, \code{getAnnualFee} & \code{DiscountPlanTest}, \code{SupermarketTest} \\
+R6, R6b & \code{PricingPolicy}, \code{CategoryDiscount} & \code{PricingPolicyTest} \\
+R7 & \code{DeliveryRequest}, \code{Supermarket.requestDelivery} & \code{DeliveryCheckoutTest} \\
+R8 & \code{StandardDeliveryCalculator} & \code{DeliveryCalculatorTest} \\
+R8b & \code{DiscountPlan.applyDeliveryDiscount} & \code{DiscountPlanTest}, \code{DeliveryCheckoutTest} \\
+R9 & \code{Inventory}, \code{StockObserver} (Observer) & \code{InventoryObserverTest} \\
+R10 & \code{TimeSlot}, \code{DeliveryManager} & \code{DeliveryManagerTest}, \code{TimeSlotTest} \\
+Customer ID (\S2.3) & \code{Customer.numericalId} & \code{SupermarketTest} \\
+CLUI (Part 2) & \code{cli} package (login, setup, scanItem, pay, runTest, \ldots) & \code{CliDispatcherTest} \\
+Test scenario (\S4) & \code{testScenario1.txt}, \code{my\_supermarket.ini} & \code{CliDispatcherTest} \\
+\bottomrule
+\end{tabularx}
+\caption{Requirements traceability: every required feature is implemented and tested.}
+\label{tab:traceability}
+\end{table}
+
+\section{How Requirements Shaped the Design}
+\textit{Discuss the main design decisions (Strategy for extensibility, Observer
+for alerts, Facade for the bank, the layered packages).}
+
+\section{The Bill Computation Pipeline}
+\textit{Describe the order in which the bill is computed: quantity price,
+category policy, customer plan and delivery (the promotion/VAT stages belong to
+Part~\ref{part:extensions}).}

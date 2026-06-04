@@ -1,0 +1,48 @@
+@startuml class-extensions
+title Extensions: Command, Promotions, Loyalty
+hide empty members
+skinparam classAttributeIconSize 0
+
+package command {
+  interface Command {
+    + execute()
+    + undo()
+    + describe() : String
+  }
+  class ScanItemCommand
+  class CommandHistory {
+    + run(c)
+    + undo() : String
+    + redo() : String
+  }
+  Command <|.. ScanItemCommand
+  CommandHistory "1" o--> "*" Command
+}
+
+package promotion {
+  interface Promotion {
+    + discount(cart) : double
+    + describe() : String
+  }
+  class BuyNGetMFreePromotion
+  class PercentageCouponPromotion
+  class PromotionEngine {
+    + addPromotion(p)
+    + totalDiscount(cart) : double
+  }
+  Promotion <|.. BuyNGetMFreePromotion
+  Promotion <|.. PercentageCouponPromotion
+  PromotionEngine "1" o--> "*" Promotion
+}
+
+package loyalty {
+  class LoyaltyProgram {
+    + pointsFor(amount) : int
+  }
+}
+
+class CashRegister
+CashRegister --> CommandHistory
+CashRegister --> PromotionEngine
+CashRegister --> LoyaltyProgram
+@enduml

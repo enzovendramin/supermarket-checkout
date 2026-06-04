@@ -1,0 +1,33 @@
+@startuml class-discount-pricing
+title Discount plans and pricing policies (Strategy + Factory)
+hide empty members
+skinparam classAttributeIconSize 0
+
+interface DiscountPlan {
+  + applyDiscount(subtotal) : double
+  + applyDeliveryDiscount(cost) : double
+  + getAnnualFee() : double
+  + getName() : String
+}
+class NormalPlan
+class PrimePlan
+class PlatinumPlan
+class DiscountPlanFactory {
+  + {static} create(name) : DiscountPlan
+}
+DiscountPlan <|.. NormalPlan
+DiscountPlan <|.. PrimePlan
+DiscountPlan <|.. PlatinumPlan
+DiscountPlanFactory ..> DiscountPlan : creates
+
+interface PricingPolicy {
+  + apply(price) : double
+  + getName() : String
+}
+class NoPricingPolicy
+class CategoryDiscount {
+  - percent : double
+}
+PricingPolicy <|.. NoPricingPolicy
+PricingPolicy <|.. CategoryDiscount
+@enduml
