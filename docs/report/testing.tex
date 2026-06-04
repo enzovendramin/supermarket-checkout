@@ -1,30 +1,65 @@
 \chapter{Testing}
 \label{ch:testing}
 
-\textit{[Skeleton --- to be written.]}
+Testing is a mandatory part of the project and was treated as a first-class
+concern: the system is validated both by unit tests, written one class at a time,
+and by end-to-end scenarios executed through the CLUI.
 
 \section{JUnit Test Strategy}
-\textit{One test class per unit, excluding getters/setters; what is covered
-(bill math, payment outcomes, observer firing, delivery branches, CLI).}
+The suite follows the instruction to provide tests for the most significant
+methods of each class, excluding trivial getters and setters. It is organised as
+one test class per unit, mirroring the source packages: bill computation
+(\code{BillComputationTest}), the payment flow and the bank authorisation
+(\code{PaymentFlowTest}, \code{TransactionAuthorisationSystemTest}), the
+inventory and its Observer (\code{InventoryObserverTest}), the delivery charging
+and logistics (\code{DeliveryCalculatorTest}, \code{DeliveryManagerTest},
+\code{TimeSlotTest}), the discount plans and pricing policies
+(\code{DiscountPlanTest}, \code{PricingPolicyTest}), and the system core and CLUI
+(\code{SupermarketTest}, \code{CliDispatcherTest}). The specified system is
+covered by 61 tests in the \code{v1.0} version (76 in the final version, which
+adds the extension tests). The CLUI dispatcher writes to an injectable stream, so
+the entire command interface is tested without any real console.
 
 \section{Test Scenarios}
-\textit{Describe the four \code{runTest} scenario files and what each validates.}
+A scenario file is a list of CLUI commands run with \code{runTest}; comment lines
+beginning with \code{\#} are ignored. The mandatory \code{testScenario1.txt}
+reproduces a complete purchase; two further scenarios exercise the remaining
+specified features. Crucially, the JUnit \code{CliDispatcherTest} executes the
+very same scenario files, so the figures quoted here are checked automatically.
 
 \begin{table}[H]
 \centering
+\small
 \begin{tabularx}{\linewidth}{p{3cm} Y}
 \toprule
 \textbf{Scenario} & \textbf{What it tests} \\
 \midrule
-\code{testScenario1.txt} & \textit{Core happy path (placeholder).} \\
-\code{testScenario2.txt} & \textit{Platinum, payment failures, restock, delivery refusal (placeholder).} \\
-\code{testScenario3.txt} & \textit{Quantity pricing and smart logistics (placeholder).} \\
-\code{testScenario4.txt} & \textit{Extensions: undo/redo, promotions, VAT, loyalty (placeholder).} \\
+\code{testScenario1.txt} & Core happy path: a $-10\%$ category discount, a prime
+subscription (\euro{}50 fee), a mixed-category checkout, the prime-halved delivery
+fee (\euro{}7.50), a failed (\code{INSUFFICIENT\_FUNDS}) then successful payment,
+and a low-stock alert when steak reaches~0. Final revenue \euro{}120.74. \\
+\code{testScenario2.txt} & Platinum plan ($-30\%$, free delivery, \euro{}200 fee),
+a dairy discount, the \code{PIN\_WRONG} and \code{AUTH\_DENIED} payment paths, a
+low-stock alert cleared by \code{restock}, and a delivery refusal above 50\,kg.
+Final revenue \euro{}254.236. \\
+\code{testScenario3.txt} & Quantity-based bulk pricing (R3) and the smart
+logistics (R10): slot booking with anti-overbooking and dynamic pricing
+(peak \euro{}22.50, eco \euro{}12.00). Final revenue \euro{}15.00. \\
 \bottomrule
 \end{tabularx}
-\caption{Test scenarios (to be completed).}
+\caption{Test scenarios for the specified system. The extensions are exercised by
+a fourth scenario described in Part~\ref{part:extensions}.}
 \label{tab:scenarios}
 \end{table}
 
 \section{How to Reproduce the Tests}
-\textit{Commands to build and run the tests and scenarios.}
+The whole suite runs with a single command, and each scenario can be replayed
+inside the CLUI:
+\begin{lstlisting}[language=bash]
+mvn test                 # compile and run every JUnit test
+mvn exec:java -Dexec.mainClass="supermarket.cli.CLI"
+> runTest testScenario1.txt
+\end{lstlisting}
+Because the scenario files are read from the project root, the automated tests
+and the interactive \code{runTest} execute the same command sequences, which
+makes every reported result reproducible.

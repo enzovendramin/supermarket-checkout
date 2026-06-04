@@ -1,15 +1,27 @@
 \chapter{Requirements and Design Decisions}
 \label{ch:requirements}
 
-\textit{[Skeleton --- prose to be written.]}
+This chapter recalls the functional requirements, shows that each of them is
+implemented and tested, and explains the main design decisions they induced.
 
 \section{Functional Requirements}
-\textit{Short recap of the core requirements (R1--R10), the mandatory CLUI and
-the mandatory tests.}
+The core requirements (R1--R10) describe a checkout that treats purchases as a
+set of bought items in mandatory categories (R1, R2, R2b), where each item is
+priced and the price may depend on the quantity (R3), and payment is made by
+bank card (R4). The system must offer \emph{extensible} discount plans --- at
+least \emph{prime} (20\% off when the total reaches \euro{}50) and \emph{platinum}
+(30\% off always) --- and let the owner introduce new ones (R5, R5b). It must
+apply \emph{category-level pricing policies} that are likewise extensible (R6,
+R6b). Customers may request home delivery (R7), charged according to weight and
+distance, with refusal above 50\,kg (R8) and plan-based reductions (R8b).
+Finally, the system maintains a live inventory that raises low-stock alerts
+using the Observer pattern (R9) and supports two-hour delivery slots with
+anti-overbooking and dynamic pricing (R10). Part~2 of the assignment adds a
+command-line user interface (CLUI) and mandatory tests.
 
 \section{Requirements Traceability}
 \label{sec:traceability}
-Table~\ref{tab:traceability} shows that every element required by the project
+Table~\ref{tab:traceability} shows that every element required by the
 instructions is implemented and tested. It maps each requirement to the classes
 that realise it and to the JUnit tests (or scenario) that validate it.
 
@@ -41,10 +53,39 @@ Test scenario (\S4) & \code{testScenario1.txt}, \code{my\_supermarket.ini} & \co
 \end{table}
 
 \section{How Requirements Shaped the Design}
-\textit{Discuss the main design decisions (Strategy for extensibility, Observer
-for alerts, Facade for the bank, the layered packages).}
+Two words in the instructions drove most of the design: \emph{extensible} and
+\emph{Observer}. The requirement to add new discount plans (R5b) and new pricing
+policies (R6b) without modifying existing code led directly to the
+\textbf{Strategy} pattern: discount plans and pricing policies are interfaces
+with interchangeable implementations, so a new plan or policy is a new class
+rather than an edit to the checkout. The same reasoning applies to the delivery
+charging scheme (R8). The explicit demand for the \textbf{Observer} pattern in
+R9 shaped the inventory module, where the stock count is decoupled from whoever
+reacts to a shortage.
+
+Three further decisions are worth noting. First, the bank-side protocol (R4) is
+hidden behind a single \emph{authorise} operation, a \textbf{Facade} that keeps
+the rest of the system independent of the banking details. Second, the code is
+organised in layers (domain entities, services, orchestration, user interface)
+so that the business logic does not depend on the way it is driven --- a property
+that proved valuable when a second interface was later added. Third, all
+monetary output is produced with a fixed locale (period decimals, UTF-8), so the
+computed figures are identical on any machine that grades the project.
 
 \section{The Bill Computation Pipeline}
-\textit{Describe the order in which the bill is computed: quantity price,
-category policy, customer plan and delivery (the promotion/VAT stages belong to
-Part~\ref{part:extensions}).}
+\code{CashRegister.computeBill()} is the heart of the specified system. For the
+items in the cart it applies, in order:
+\begin{enumerate}[nosep]
+  \item the \textbf{quantity-based unit price} (R3), through
+  \code{Item.unitPriceFor(qty)};
+  \item the \textbf{category pricing policy} (R6), e.g.\ a 10\% reduction on
+  fruit and vegetables;
+  \item the customer's \textbf{discount plan} (R5) on the resulting subtotal ---
+  prime applies its 20\% only when that subtotal reaches \euro{}50, platinum
+  always applies 30\%;
+  \item the \textbf{delivery fee} (R8) when a delivery was requested, reduced by
+  the plan (R8b: prime pays half, platinum free).
+\end{enumerate}
+The total is thus \emph{items after plan} plus \emph{plan-adjusted delivery}.
+Subscribing to a plan also charges its annual fee immediately (normal
+\euro{}0, prime \euro{}50, platinum \euro{}200), as required by \S2.3.

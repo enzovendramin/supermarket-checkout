@@ -1,16 +1,52 @@
 \chapter{Introduction}
 \label{ch:introduction}
 
-\textit{[Skeleton --- to be written.]}
+This report documents the design and implementation of a \emph{supermarket
+checkout system} developed in Java for the course \emph{2EL1520 --- Génie
+logiciel orienté objet}. The system processes the items a customer buys at a
+checkout, computes the corresponding bill, handles the bank-card payment, and
+keeps the shop's inventory up to date in real time.
 
 \section{Context and Objectives}
-\textit{Brief presentation of the assignment: a supermarket checkout system in
-Java with a command-line interface, graded on design quality, design patterns,
-JUnit tests and UML. State the goals of this report.}
+A supermarket checkout system is a natural setting for object-oriented design:
+it brings together several collaborating components --- the \emph{cash register}
+(which records the bought items and computes the total bill), the
+\emph{customer} (who may adhere to a discount plan and request home delivery),
+and the \emph{bank payment system} (which authorises the card transaction). Each
+component has clear responsibilities and well-defined interactions, and several
+of them are explicitly required to be \emph{extensible}.
+
+The objective of this work is therefore twofold: to implement the full set of
+functional requirements, and to do so with a clean, pattern-driven design that
+remains open to extension. Because the project is graded on design quality, the
+use of design patterns, the JUnit test suite and the UML models, this report
+emphasises \emph{why} the code is structured the way it is, and shows
+explicitly that every required feature has been implemented and tested.
 
 \section{Scope and Deliverables}
-\textit{What is delivered: the Java implementation, the test scenarios, this
-report and the UML diagrams; pointer to the GitHub repository.}
+The deliverables associated with this project are:
+\begin{itemize}[nosep]
+  \item the Java implementation of the supermarket checkout system, built with
+  Maven and tested with JUnit~5;
+  \item an initial configuration file (\code{my\_supermarket.ini}) and
+  end-to-end test scenarios executed through the command-line interface;
+  \item the UML models (class, use-case and sequence diagrams);
+  \item this report.
+\end{itemize}
+The source code is hosted at
+\url{https://github.com/enzovendramin/supermarket-checkout}. The repository
+offers two runnable versions: a \emph{specification version} (tag \code{v1.0}),
+containing exactly what the instructions require, and a \emph{final version} (the
+\code{master} branch), which adds the optional extensions described in
+Part~\ref{part:extensions}.
 
 \section{Report Structure}
-\textit{One sentence describing the remaining chapters.}
+The report is organised in two parts. \textbf{Part~\ref{part:specified}} covers
+the \emph{specified system}: it recalls the requirements and the design
+decisions they induced (Chapter~\ref{ch:requirements}), presents the
+architecture and the design patterns (Chapter~\ref{ch:architecture}), gives the
+UML models (Chapter~\ref{ch:uml}) and describes the testing
+(Chapter~\ref{ch:testing}). \textbf{Part~\ref{part:extensions}} is dedicated to
+the optional extensions built on top of the specified baseline. The report ends
+with a design analysis and conclusion, followed by appendices containing the
+complete class diagram and the build instructions.

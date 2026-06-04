@@ -2,14 +2,25 @@
 \label{ch:uml}
 
 This chapter presents the UML models of the specified system. Because the full
-class diagram is large, it is shown here as focused per-package views (each
-legible on its own); the complete class diagram is provided in
+class diagram is large, it is shown here as focused per-package views, each
+legible on its own; the complete class diagram is provided in
 Appendix~\ref{app:fullclass}. The extension classes are shown separately in
 Part~\ref{part:extensions}.
 
 \section{Class Diagram (per package)}
 \label{sec:class-diagram}
-\textit{[Commentary to be written.]}
+The class model follows the layering of Chapter~\ref{ch:architecture}.
+Figure~\ref{fig:class-domain} shows the domain entities: a \code{Customer} (a
+\code{User}) holds a discount plan and a bank card, an \code{Item} belongs to a
+\code{Category} carrying its pricing policy, and a \code{Cart} aggregates
+\code{CartEntry} lines. Figure~\ref{fig:class-discount} shows the two Strategy
+families --- discount plans (with their factory) and pricing policies. The
+Observer and Facade structures appear in Figure~\ref{fig:class-inv-pay}: the
+\code{Inventory} notifying its \code{StockObserver}s on the left, and the POS and
+the bank authorisation system on the right. Figure~\ref{fig:class-delivery}
+gathers the delivery and smart-logistics classes, and
+Figure~\ref{fig:class-orchestration} shows how \code{Supermarket} and
+\code{CashRegister} wire the services together and how the CLUI drives the core.
 
 \begin{figure}[H]
     \centering
@@ -51,7 +62,15 @@ Part~\ref{part:extensions}.
 
 \section{Use-Case Diagram}
 \label{sec:use-case}
-\textit{[Commentary to be written.]}
+Figure~\ref{fig:use-case} summarises the interactions of the three human actors
+and the bank. The \emph{Manager} configures the system (setup, registering
+users, adding items, setting category discounts, restocking, inspecting
+inventory and revenue); the \emph{Cashier} runs the checkout (start, scan,
+compute bill, pay, simulate a payment outcome); and the \emph{Customer}
+subscribes to a plan and requests home delivery. Two relationships are worth
+noting: \emph{Pay} \emph{includes} the bank's \emph{Authorise transaction}, and it
+\emph{extends} into \emph{Notify low stock} when a sale brings a perishable item
+below its threshold (R9).
 
 \begin{figure}[H]
     \centering
@@ -62,7 +81,14 @@ Part~\ref{part:extensions}.
 
 \section{Sequence Diagrams}
 \label{sec:sequence}
-\textit{[Commentary to be written.]}
+Figure~\ref{fig:seq-checkout} traces a full checkout: the cashier opens the
+session, scans items into the cart, asks for the bill (computed across the
+pricing policies, the plan and the delivery) and triggers the payment. The POS
+either honours a forced outcome (used for reproducible tests) or runs the real
+flow through the bank; on success the inventory is decremented and the receipt is
+printed. Figure~\ref{fig:seq-lowstock} zooms into the Observer mechanism of R9:
+when \code{decrement} brings a perishable item to or below its threshold,
+\code{Inventory} notifies each observer in turn.
 
 \begin{figure}[H]
     \centering

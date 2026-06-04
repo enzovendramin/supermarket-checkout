@@ -1,32 +1,86 @@
 \chapter{Architecture and Design Patterns}
 \label{ch:architecture}
 
-\textit{[Skeleton --- to be written.]}
+This chapter describes how the specified system is structured and which design
+patterns realise its requirements.
 
 \section{Package Architecture}
-\textit{Layered overview of the packages (model, services, register, cli, gui)
-and the dependency direction.}
+The code is organised in layers, each in its own package, so that dependencies
+flow in a single direction: from the user interface, to the orchestration core,
+to the services, and finally to the domain entities.
+
+\begin{itemize}[nosep]
+  \item \code{model} and \code{users} hold the domain entities (\code{Item},
+  \code{Category}, \code{Cart}, \code{CartEntry}, \code{BankCard},
+  \code{Customer}, \code{Receipt}) and the user roles (\code{Manager},
+  \code{Cashier}).
+  \item \code{discount} and \code{pricing} contain the discount-plan and
+  pricing-policy strategies (with the discount-plan factory).
+  \item \code{inventory} implements the live stock with its Observer-based
+  alerts; \code{payment} models the POS and the bank authorisation system;
+  \code{delivery} computes delivery fees and manages the time slots.
+  \item \code{register} contains the orchestration: \code{CashRegister} runs a
+  checkout session and \code{Supermarket} is the system core.
+  \item \code{cli} provides the command-line user interface.
+\end{itemize}
+
+Because the business logic lives entirely in the core and the services, the
+\code{cli} package is only a \emph{driver} of the \code{Supermarket} API. This
+separation of concerns keeps the domain testable in isolation and, as shown in
+Part~\ref{part:extensions}, allows a second user interface to be added without
+touching the domain.
 
 \section{Design Patterns}
-\textit{Describe each pattern and the problem it solves.}
+The specified system uses the four patterns of Table~\ref{tab:patterns}; each is
+introduced to solve a specific requirement.
 
 \begin{table}[H]
 \centering
-\begin{tabularx}{\linewidth}{p{2.2cm} Y}
+\begin{tabularx}{\linewidth}{p{2.1cm} p{3.4cm} Y}
 \toprule
-\textbf{Pattern} & \textbf{Where and why} \\
+\textbf{Pattern} & \textbf{Where} & \textbf{Problem it solves} \\
 \midrule
-Strategy & \textit{Discount plans, pricing policies, delivery, promotions (placeholder).} \\
-Observer & \textit{Inventory low-stock alerts (placeholder).} \\
-Factory & \textit{Discount-plan creation by name (placeholder).} \\
-Facade & \textit{Transaction Authorisation System (placeholder).} \\
-Command & \textit{Undo/redo of scans (placeholder).} \\
+Strategy & \code{DiscountPlan} (Normal/Prime/Platinum) & Swap the discount
+behaviour per customer without conditionals; new plans need no change to the
+checkout (R5b). \\
+Strategy & \code{PricingPolicy} per \code{Category} & Per-category pricing that
+can be changed or added at runtime (R6b). \\
+Strategy & \code{DeliveryCalculator} & The delivery charging scheme can be
+replaced without touching the bill logic (R8). \\
+Factory & \code{DiscountPlanFactory} & Creates a plan from its name (used by
+\code{subscribeToPlan}), isolating the system from the concrete plan classes. \\
+Observer & \code{Inventory} $\rightarrow$ \code{StockObserver} & Decouples stock
+bookkeeping from whoever reacts to a shortage; new listeners subscribe freely
+(R9). \\
+Facade & \code{TransactionAuthorisationSystem} & Hides the banking authorisation
+protocol behind a single \code{authorise(card, amount)} operation (R4). \\
 \bottomrule
 \end{tabularx}
-\caption{Design patterns used (to be completed).}
+\caption{Design patterns used in the specified system.}
 \label{tab:patterns}
 \end{table}
 
+The three \textbf{Strategy} uses share the same intent --- making a family of
+behaviours interchangeable --- but target different axes of variation: the
+customer's plan, the category's pricing and the delivery charging. The
+\textbf{Factory} complements the discount Strategy by turning a plan name (a
+string typed at the CLUI) into the right object. The \textbf{Observer} is the one
+pattern explicitly mandated by the instructions: when a perishable item drops to
+or below its threshold, \code{Inventory} notifies every registered
+\code{StockObserver} (a manager notifier and a supplier notifier), with no
+knowledge of what they do. The \textbf{Facade} concentrates the bank dialogue ---
+PIN verification on the card chip and balance authorisation --- behind one method,
+so the checkout never manipulates banking internals directly.
+
 \section{Domain Core and Orchestration}
-\textit{Role of \code{Supermarket} (system core) and \code{CashRegister}
-(checkout orchestration).}
+Two classes coordinate the rest. \code{Supermarket} is the \emph{system core}: it
+owns the catalogue, the categories, the registered users, the inventory, the
+bank authorisation system and the cash register, and it exposes the operations
+invoked by the CLUI (registering users, adding items, setting discounts,
+requesting delivery, opening a checkout). \code{CashRegister} is the
+\emph{checkout orchestrator}: it holds the current customer and cart, computes
+the bill across the cart, the pricing policies, the plan and the delivery, and
+drives the POS payment. On a successful payment it decrements the inventory ---
+possibly triggering the R9 alert --- records the revenue and prints the receipt.
+This mediator-like arrangement keeps each collaborating service simple while a
+single object owns the checkout workflow.
