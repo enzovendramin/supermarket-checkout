@@ -81,21 +81,29 @@ below its threshold (R9).
 
 \section{Sequence Diagrams}
 \label{sec:sequence}
-Figure~\ref{fig:seq-checkout} traces a full checkout: the cashier opens the
-session, scans items into the cart, asks for the bill (computed across the
-pricing policies, the plan and the delivery) and triggers the payment. The POS
-either honours a forced outcome (used for reproducible tests) or runs the real
-flow through the bank; on success the inventory is decremented and the receipt is
-printed. Figure~\ref{fig:seq-lowstock} zooms into the Observer mechanism of R9:
-when \code{decrement} brings a perishable item to or below its threshold,
-\code{Inventory} notifies each observer in turn.
+The checkout is split into two diagrams for clarity. Figure~\ref{fig:seq-checkout}
+shows the bill computation: the cashier opens the session, scans items into the
+cart and asks for the bill, which the cash register computes across the cart, the
+discount plan and the delivery calculator. Figure~\ref{fig:seq-payment} shows the
+payment: the POS either honours a forced outcome (used for reproducible tests) or
+runs the real flow through the bank, and on success the inventory is decremented
+and the receipt is returned. Figure~\ref{fig:seq-lowstock} then zooms into the
+Observer mechanism of R9: when \code{decrement} brings a perishable item to or
+below its threshold, \code{Inventory} notifies each observer in turn.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\linewidth]{sequence-checkout-payment.png}
-    \caption{Checkout and payment flow, including the forced/real payment branch
-    and the post-success inventory decrement.}
+    \includegraphics[width=\linewidth]{sequence-checkout.png}
+    \caption{Opening a checkout, scanning items and computing the bill.}
     \label{fig:seq-checkout}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{sequence-payment.png}
+    \caption{Payment flow, including the forced/real payment branch and the
+    post-success inventory decrement.}
+    \label{fig:seq-payment}
 \end{figure}
 
 \begin{figure}[H]

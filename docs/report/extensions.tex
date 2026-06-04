@@ -1,10 +1,14 @@
 \chapter{Extensions Beyond the Specification}
 \label{ch:extensions}
 
-\textit{[Skeleton --- to be written.] Built on the specified baseline (tagged
-\code{v1.0}); all extensions default to no-op so the required behaviour is
-unchanged. The two runnable versions of the project (specified-only and final)
-are described in the README and Appendix~\ref{app:build}.}
+This part presents the features added \emph{on top of} the specified system.
+They are built on the specification baseline (tagged \code{v1.0}) and are
+deliberately \emph{additive}: every extension defaults to a no-op, so the
+required behaviour --- and the figures of Part~\ref{part:specified} --- are
+unchanged when no promotion, tax or loyalty rule is configured. The two runnable
+versions (specified-only and final) are described in the README and
+Appendix~\ref{app:build}. Figure~\ref{fig:class-extensions} shows the classes
+introduced here and how they plug into \code{CashRegister}.
 
 \begin{figure}[H]
     \centering
@@ -15,17 +19,70 @@ are described in the README and Appendix~\ref{app:build}.}
 \end{figure}
 
 \section{Undo/Redo (Command Pattern)}
-\textit{Reversible scan commands with a command history.}
+A cashier may scan a wrong item or quantity. To make such an action reversible,
+each scan is turned into a \textbf{Command}: \code{scanItem} no longer adds a cart
+line directly but runs a \code{ScanItemCommand} through a \code{CommandHistory}.
+The history is the \emph{invoker} of the pattern --- it executes the command and
+keeps an undo stack and a redo stack --- while each \code{Command} knows how to
+\code{execute}, \code{undo} and \code{describe} itself. The CLUI exposes the new
+\code{undo} and \code{redo} commands, so a mis-scan is corrected with a single
+keystroke instead of restarting the checkout. The pattern keeps the cash register
+oblivious to \emph{how} an action is reversed.
 
 \section{Promotions Engine (Strategy)}
-\textit{Buy-N-get-M offers and percentage coupons aggregated for the bill.}
+Store promotions are modelled as another \textbf{Strategy}. The \code{Promotion}
+interface returns the discount it grants for a given cart, and two concrete
+promotions are provided: \code{BuyNGetMFreePromotion} (for every $N+M$ units of
+an item, $M$ are free) and \code{PercentageCouponPromotion} (a percentage off the
+cart). A \code{PromotionEngine} aggregates the active promotions and returns their
+combined discount; new kinds of promotion are added by implementing the interface,
+with no change to the engine or the checkout. The manager configures them with the
+\code{addBogoPromotion} and \code{addCoupon} commands.
 
 \section{Per-Category VAT}
-\textit{Tax rate on each category, applied to net line prices.}
+Each \code{Category} gains an optional VAT rate (zero by default). During bill
+computation the tax is accumulated on the net, post-category-policy price of each
+line and added to the total; it is shown on the receipt only when non-zero. The
+manager sets it with \code{setCategoryTax}. Modelling VAT at the category level
+mirrors the design of the category pricing policy and keeps the rule close to the
+entity it concerns.
 
 \section{Loyalty Points}
-\textit{Points earned per euro spent on payment.}
+A small \code{LoyaltyProgram} service awards one point per euro spent. On a
+successful payment the cash register asks the program how many points the total
+earns and credits them to the customer, who can later check the balance with the
+\code{showPoints} command. Keeping the earning rule in a single service makes it
+trivial to change the rate or introduce point redemption later.
+
+\section{The Extended Bill and a Demonstration}
+With the extensions enabled, the bill pipeline gains two stages around the plan
+discount: promotions are subtracted from the items subtotal (after the category
+policy, before the plan, capped so it never goes negative), and VAT is added at
+the end. The full order is therefore: quantity price, category policy,
+\emph{promotions}, discount plan, \emph{VAT}, delivery.
+
+The scenario \code{testScenario4.txt} exercises all four extensions end to end. A
+mis-scan is corrected with \code{undo}/\code{redo}; a ``buy one get one free''
+offer on soda and a 5\% coupon are applied; the grocery category carries a 10\%
+VAT. For a cart of four sodas and three units of rice, the raw total of
+\euro{}18.00 is reduced by \euro{}6.90 of promotions to \euro{}11.10, to which
+\euro{}1.80 of VAT is added, giving a total of \euro{}12.90 and 12 loyalty points.
+These extensions are covered by dedicated unit tests
+(\code{CommandUndoRedoTest}, \code{PromotionEngineTest}, \code{LoyaltyProgramTest},
+\code{BillExtrasTest}) and by \code{GuiDomainFlowTest}; the full project totals 76
+JUnit tests.
 
 \section{JavaFX Graphical Interface}
-\textit{A second presentation layer over the same domain core, with a live
-low-stock highlight fed by a new \code{StockObserver}. Insert a screenshot here.}
+The clearest evidence of the architecture's quality is that a second user
+interface could be added \emph{without changing the domain at all}. The
+\code{gui} package provides a JavaFX desktop application (\code{CheckoutApp}) that
+is purely a presentation layer over the same \code{Supermarket} core used by the
+CLUI. It shows the catalogue, the live cart and the bill breakdown, offers
+buttons to scan, \code{undo}/\code{redo} and pay (with a selectable simulated
+outcome), and displays the revenue and the customer's loyalty points. The
+inventory table highlights low-stock rows in real time through a \emph{new}
+\code{StockObserver} registered on the existing \code{Inventory} --- a direct,
+visual demonstration of the Observer pattern of R9. The interface is launched with
+\code{mvn javafx:run}.
+
+\textit{[A screenshot of the running GUI can be inserted here.]}

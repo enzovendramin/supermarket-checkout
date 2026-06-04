@@ -1,0 +1,30 @@
+@startuml sequence-payment
+title Payment
+
+actor Cashier
+participant "CLI" as CLI
+participant CashRegister
+participant POSDevice
+participant "TAS" as TAS
+participant Inventory
+
+Cashier -> CLI : pay 4242... 1234
+CLI -> CashRegister : pay(card, pin)
+CashRegister -> CashRegister : check stock per entry
+CashRegister -> POSDevice : pay(card, pin, total)
+
+alt forced outcome set (simulatePayment)
+    POSDevice --> CashRegister : forced PaymentResult
+else real flow
+    POSDevice -> TAS : authorise(card, total)
+    TAS --> POSDevice : PaymentResult
+end
+
+alt SUCCESS
+    CashRegister -> Inventory : decrement(item, qty)
+    note right of Inventory : may fire low-stock alert (R9)
+    CashRegister --> CLI : SUCCESS + Receipt
+else failure
+    CashRegister --> CLI : INSUFFICIENT_FUNDS / PIN_WRONG / AUTH_DENIED
+end
+@enduml
