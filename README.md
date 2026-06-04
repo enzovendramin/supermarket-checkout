@@ -69,5 +69,6 @@ testScenario*.txt        end-to-end CLUI scenarios
 
 ## Documentation
 
-- **Report:** `docs/report/` (LaTeX; build `main.tex` with `pdflatex`).
+- **Report (PDF):** [`docs/report/Report.pdf`](docs/report/Report.pdf) — the full written report.
+- **Report sources:** `docs/report/` (LaTeX; build `main.tex` with `pdflatex`).
 - **UML diagrams:** `docs/uml/` (PlantUML sources + rendered PNGs).
